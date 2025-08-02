@@ -1,0 +1,105 @@
+body{
+  background-color: #232428;
+}
+
+.floatpage{
+  position:relative;
+  background-color: #222;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.4);
+  margin: 10% 25%;
+  padding: 5%;
+  height: 50vh;
+  border-radius: 10px;
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 25;
+  color: #fff;
+  min-height: 200px;
+  min-width: 300px;
+  display:flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.userCollection{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  gap:15%;
+}
+
+.userBox{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap:15%;
+}
+
+.userBoxa{
+  position: inherit;
+  margin-top: 15%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 0% 15%;
+}
+
+.info{
+  display:flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items:baseline;
+}
+
+.user{
+  display:flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.signin-input{
+  background-color: #313338;
+  border-radius: 30px;
+  border-color: #0a2269;
+  padding:10px 15px;
+  margin: 5px 10px;
+  flex: .75;
+  box-sizing: border-box;
+  user-select: none;
+  min-width: 60%;
+  max-width: 90%;
+  overflow: hidden;
+  outline: none;
+  text-align: center;
+}
+
+.ab{
+  height:15vh;
+  width: 50vw;
+  overflow-y: hidden;
+  resize:none;
+  font-size: smaller;
+  text-align: left;
+}
+
+.signin-text{
+  min-width: 10%;
+  padding: 14px 28px;
+  background: #222;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition-duration: 1s;
+}
+
+.signin-text:hover{
+  background: #313338;
+}

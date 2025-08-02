@@ -1,0 +1,109 @@
+
+.match{
+  width: 250px;
+  background: #232428;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border-right: 1px solid #222;
+  height: 100vh;
+  color: #fff;
+  font-family: sans-serif;
+  flex:.3;
+  margin:0;
+  margin-top: 0;
+
+}
+
+@media (max-width:1000px){
+  .match{
+    display: none;
+  }
+}
+
+
+.big{
+  color:white;
+  font-size: 30;
+  align-self: center;
+}
+
+.profiles{
+  width: 100%;
+  flex: 1;
+  background: #232428;
+  color: #fff;
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow-y: scroll;
+  overflow-x: visible;
+  align-items: center;
+}
+.profiles::-webkit-scrollbar{
+  background: transparent;
+}
+
+.profiles::-webkit-scrollbar-thumb{
+  border-radius: 10px;
+  width: 1px;
+  background: rgba(0,0,0,0.25);
+}
+
+.pfp{
+  width: 100%;
+  aspect-ratio: 1/1;
+  border-radius: 50%;
+  background: #5865F2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+  margin-bottom: 5%;
+}
+
+.profile{
+  width: 90%;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  justify-items: center;
+  gap:4px;
+  padding: 20px 28px;
+  background-color:#232428;
+  box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+}
+
+.profile::-webkit-scrollbar{
+  background: transparent;
+}
+
+.profile::-webkit-scrollbar-thumb{
+  border-radius: 10px;
+  width: 1px;
+  background: rgba(0,0,0,0.25);
+}
+
+.userinfo{
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.username{
+  font-weight: 700;
+  font-size: min(3vh,1vw);
+}
+
+.aboutme{
+  align-items: left;
+}
+
+.small{
+  font-size: min(2vh,2vw);
+}
+
+.reg{
+  font-weight: 500;
+  line-height: 1.1;
+}
