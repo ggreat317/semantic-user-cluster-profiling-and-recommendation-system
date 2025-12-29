@@ -1,0 +1,2 @@
+# machine-learning-chat-application
+A chat application with front end, back end, and ML properties. Currently working on UI, similarity cosines, and a global model for user interaction.
