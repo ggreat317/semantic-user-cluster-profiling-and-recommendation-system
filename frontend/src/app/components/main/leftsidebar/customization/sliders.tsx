@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, ReactElement, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { updateCustom } from '../../api/selfUpdates.js'
-import { getUserInfo } from '../../api/selfGet.js';
 type Setter = React.Dispatch<React.SetStateAction<string>>
 
 

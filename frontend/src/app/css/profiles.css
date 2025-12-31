@@ -62,7 +62,7 @@
 }
 
 .profile.open{
-  min-height: 20vh;
+  min-height: 50vh;
 }
 
 .pfp{
@@ -109,6 +109,13 @@
 }
 
 .aboutme{
+  min-height: 30vh;
+  text-align: center;
+}
+
+.umap{
+  min-height: 10vh;
+  max-height: 10vh;
   text-align: center;
 }
 

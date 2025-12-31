@@ -16,7 +16,6 @@ export function CreateUser({ setCreate } : { setCreate : React.Dispatch<React.Se
   const [cpwError, setCPWError] = useState("");
 
   // handles varius good and bad inputs
-  console.log(name)
   function handleInput(e : React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
 
@@ -122,14 +121,10 @@ export function CreateUser({ setCreate } : { setCreate : React.Dispatch<React.Se
 
     if (res.ok) {
       await signInWithCustomToken(auth, data.firebaseToken);
-      console.log("User signed in with custom token!");
     } else {
       console.error(data.error);
     }
 
-    console.log("Attempted Sign In with Creation");
-    console.log("Current email: " + auth.currentUser?.email);
-    console.log("Current uID: " + auth.currentUser?.uid);
   };
 
   return (

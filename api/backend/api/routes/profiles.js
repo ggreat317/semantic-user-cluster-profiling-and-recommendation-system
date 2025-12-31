@@ -23,16 +23,28 @@ router.get("/UMAP/others/:userID", async (req,res) =>{
   }
 
   const embeddedArray = userDoc.embed;
-  console.log("start");
+
+  console.log("Attempting to fetch umap")
   const response = await fetch("http://ml:8000/UMAP", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ array: embeddedArray }),
     });
-  const data = await response.json();
-  console.log(data);
-  console.log("done");
-  res.json(response);
+  const result = await response.json();
+  console.log("Fetch umap successful")
+
+  console.log("Attempting to fetch labels")
+  const response1 = await fetch("http://ml:8000/labels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ array: embeddedArray }),
+    });
+  const result1 = await response1.json();
+  console.log("Fetch labels successful")
+
+  console.log(result1)
+
+  res.json(result);
 })
 
 export default router;

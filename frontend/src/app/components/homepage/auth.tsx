@@ -27,8 +27,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const listener = onAuthStateChanged(auth, (user) => { 
       setUser(user);
       setLoading(false);
-      console.log('default room is')
-      console.log(room)
     })
     return () => listener();
   }, [room])

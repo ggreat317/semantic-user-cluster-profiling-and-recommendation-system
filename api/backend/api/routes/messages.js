@@ -45,41 +45,39 @@ router.post("/", async (req, res) => {
       { $set: { lastAccessed: now } }
     );
 
-    console.log("Successfully posted to MongoDB")
+    console.log("Successfully posted to MongoDB");
 
-    console.log("Attempting to post to Firebase")
+    console.log("Attempting to post to Firebase");
     await admin.firestore().collection("rooms").doc(req.body.room).collection("messages").doc(`${messageID}`).set({
       ...req.body,
       time: admin.firestore.FieldValue.serverTimestamp(),
       ownerID: userID
-    })
+    });
 
     await admin.firestore().collection("roomVault").doc(room).set({
       lastAccessed: now
     }, { merge: true })
-    console.log("Successfully posted to Firebase")
+    console.log("Successfully posted to Firebase");
 
+    console.log("Attempting to post embedding to MongoDB")
     const response = await fetch("http://ml:8000/embed", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: req.body.text }),
     });
-    console.log("this is the response below")
-    const embed = await response.json()
-    console.log(embed)
-
-    console.log("Attempting to post embedding to MongoDB")
+    const data = await response.json()
     await db.collection("users").updateOne(
       {uid: req.user.uid},
-      {$addToSet: {embed: embed}},
+      {$addToSet: {embed: data}},
       {upsert: true}
     )
+    console.log("Successfully posted embedding to MongoDB");
 
     res.status(201).json({ id: messageID.toString() });
   } catch (err) {
     console.log(`ERROR posting: ${userID} at ${messageID}`);
     console.log(err);
-    res.status(500).json({ error: "Message Send Failure!" })
+    res.status(500).json({ error: "Message Send Failure!" });
   }
 });
 

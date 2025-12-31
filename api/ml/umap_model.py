@@ -43,47 +43,48 @@ from sentence_transformers import SentenceTransformer
 import logging
 import umap
 import pickle
+import os
 
+UMAP_PATH = "umap_model.pkl"
 
 def fit_umap(embeddings, n_components=3):
   print("attempting fit defintion")
-  logging.info("attempting print didnt work lmfao")
   reducer = umap.UMAP(n_components=n_components, random_state=42)
   embedding_3d = reducer.fit_transform(embeddings)
-  with open("umap_model.pkl", "wb") as f:
+  with open(UMAP_PATH, "wb") as f:
     pickle.dump(reducer, f)
   return embedding_3d
 
-def load_umap_model(path="umap_model.pkl"):
+def load_umap_model(path=UMAP_PATH):
   print("attempting to load defintion")
-  logging.info("print didnt work lmfao")
   with open(path, "rb") as f:
     reducer = pickle.load(f)
   return reducer
-"""
-logging.info("attempting to get umap")
-logging.info("loading transformer")
-model = SentenceTransformer("all-MiniLM-L6-v2")
 
-logging.info("loading variables")
-batch_size = 64
-all_embeddings = []
+if (not(os.path.exists(UMAP_PATH))):
+  logging.info("attempting to get umap")
+  logging.info("loading transformer")
+  model = SentenceTransformer("all-MiniLM-L6-v2")
 
-
-logging.info("running embed on range")
-for i in range(0, len(messages), batch_size):
-    batch = messages[i:i+batch_size]
-    batch_embeddings = model.encode(batch)
-    all_embeddings.extend(batch_embeddings)
-    logging.info("success " + str(i))
-
-logging.info("embed complete")
+  logging.info("loading variables")
+  batch_size = 64
+  all_embeddings = []
 
 
-embedding_3d = fit_umap(all_embeddings)
+  logging.info("running embed on range")
+  for i in range(0, len(messages), batch_size):
+      batch = messages[i:i+batch_size]
+      batch_embeddings = model.encode(batch)
+      all_embeddings.extend(batch_embeddings)
+      logging.info("success " + str(i))
 
-logging.info("3d map complete")
+  logging.info("embed complete")
 
-"""
+
+  embedding_3d = fit_umap(all_embeddings)
+
+  logging.info("3d map complete")
+
+
 
 

@@ -42,7 +42,6 @@ export function ChatScreen({room} : {room : string}) {
         console.log(err)
       }
     }
-    console.log("ROOM CHANGE!!!!!")
     loadInitial();
     return () => {
       active = false;

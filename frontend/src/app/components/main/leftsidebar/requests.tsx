@@ -33,8 +33,6 @@ export function RequestBar({setSidebar} : {setSidebar: Setter}) {
       if(!data){
         return setUsers([])
       }
-      console.log("DATA!!!!")
-      console.log(data)
       const list = Object.values(data)
         .map((u : PublicData) => ({
           userID: u.from,
@@ -42,12 +40,8 @@ export function RequestBar({setSidebar} : {setSidebar: Setter}) {
           userName: u.fromName
         }))
         .sort((a, b) => a.time.getTime() - b.time.getTime());
-      console.log("list")
-      console.log(list)
       setUsers(list);
     }
-    console.log("users")
-    console.log(users)
 
     loadRequests();
 
@@ -84,11 +78,7 @@ function ProfileRow({ userID, userName }: {userID: string; userName: string;}) {
   const [profile, setProfile] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  console.log("attempting load")
-  console.log(userName)
-  console.log(userID)
   if(!userName){ return; }
-  console.log("username check")
   async function loadProfile() {
     if (profile || loading) return;
 
@@ -143,7 +133,6 @@ function AcceptRejectButtons({ recipientID }: { recipientID: string }) {
     setProcessing(true);
     try {
       await acceptFriendRequest(recipientID)
-      console.log("Accepted friend:", recipientID);
       setStatus("accept");
     } catch (err) {
       console.error(err);
@@ -156,7 +145,6 @@ function AcceptRejectButtons({ recipientID }: { recipientID: string }) {
     e.stopPropagation();
     setProcessing(true);
     try {
-      console.log("Rejected friend:", recipientID);
       setStatus("reject");
     } catch (err) {
       console.error(err);

@@ -1,7 +1,11 @@
 sentence-transformers
 numpy
 scipy
+scikit-learn
+joblib
+hdbscan
 faiss-cpu
 fastapi        # Optional if you want to serve ML via HTTP
 uvicorn        # Optional for FastAPI server
 umap-learn
+

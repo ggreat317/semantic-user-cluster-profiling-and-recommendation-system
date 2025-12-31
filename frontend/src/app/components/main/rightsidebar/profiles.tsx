@@ -3,6 +3,7 @@ import { useAuth } from '../../homepage/auth';
 import { getDatabase, ref, onValue, off} from "firebase/database";
 import { sendFriendRequest } from '../api/request';
 import { loadOtherUMAP } from '../api/profiles';
+import ProfileUMAP from './profileUMAP';
 
 type PublicUser = {
   userID: string;
@@ -57,29 +58,31 @@ export function Profiles() {
 function ProfileRow({ userID, userName }: {userID: string; userName: string;}) {
 
   const [open, setOpen] = useState(false);
-  const [profile, setProfile] = useState<string | null>(null);
+  const [points, setPoints] = useState<number[][]>([])
   const [loading, setLoading] = useState(false);
 
   if(!userName){ return; }
 
   async function loadProfile() {
-    if (profile || loading) return;
-    console.log("testttttttttttt")
-    loadOtherUMAP(userID);
-    setProfile("nothing to see here");
-    //setLoading(false);
+    if (loading) return;
+    setLoading(true);
+    console.log("test");
+    const coords = await loadOtherUMAP(userID);
+    console.log(coords);
+    console.log(coords);
+    setPoints(coords);
+    setLoading(false);
   }
 
   function handleToggle() {
     console.log("loading")
-    //setOpen((o) => !o);
-    //console.log(open)
-    //if (!open) loadProfile(); // fetch only once
+    setOpen((state) => !state);
+    if (!open) loadProfile(); // fetch only once
   }
 
   return (
     <div className={`profile ${open ? "open" : ""}`}>
-      <button className="userinfo" onClick={loadProfile}>
+      <button className="userinfo" onClick={handleToggle}>
         <div className="pfp">{userName.slice(0, 2)}</div>
         <div className="usernameHolder">
           <div className="username">{userName}</div>
@@ -88,8 +91,8 @@ function ProfileRow({ userID, userName }: {userID: string; userName: string;}) {
 
       {open && (
         <div className="aboutme">
-          {loading && <div>Loading...</div>}
-          {!loading && profile && <div>{profile}</div>}
+            {loading && <div>Loading...</div>}
+            {!loading && points && <ProfileUMAP points={points}></ProfileUMAP>}
           <div>
             <FriendButton recipientID={userID} />
           </div>

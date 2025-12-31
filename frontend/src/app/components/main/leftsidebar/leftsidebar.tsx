@@ -78,7 +78,6 @@ export function LeftSidebar() {
     };
   }, [user]);
 
-  console.log(rooms)
   const sortByLastAccessed = (a: Room, b: Room) =>
     new Date(b.lastAccessed).getTime() -
     new Date(a.lastAccessed).getTime();

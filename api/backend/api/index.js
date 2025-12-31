@@ -16,6 +16,7 @@ app.use(cors({
   origin: [
     "http://localhost:3000",
     "https://murmurs.web.app",
+    "https://murmurs.web.app/main",
     "https://murmurs.firebaseapp.com"
   ],
   allowedHeaders: ["Content-Type", "Authorization"],

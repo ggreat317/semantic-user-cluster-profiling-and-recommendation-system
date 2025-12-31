@@ -36,9 +36,9 @@ export default function Main() {
   useEffect(() => {
     if (!loading && hydrated) {
       if (user) {
-        console.log("User has entered the matrix: " + user);
+        console.log("User has entered the matrix");
       } else {
-        console.log("Caught unverified user like Odell back in 2014.");
+        console.log("Caught unverified user like Odell back in 2014");
         router.push('/login');
       }
     }

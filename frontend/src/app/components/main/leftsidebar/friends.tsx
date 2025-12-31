@@ -8,7 +8,6 @@ export function FriendsBar({setSidebar, friendMessages} : {setSidebar: Setter, f
 
   const { setRoom } = useAuth();
   const chatRooms = friendMessages.map(room => {
-    console.log(user)
     return (
       <div key={room._id}>
         <MenuButton className={room._id} set={setRoom} name={room.name} />
