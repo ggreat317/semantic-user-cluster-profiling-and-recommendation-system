@@ -48,6 +48,7 @@ router.post("/", limiter, async (req, res) => {
       displayName,
       createdAt: creationTime,
       lastLoginAt: creationTime,
+      embeddedBatchLimit: 32
     });
 
     await db.collection("rooms").updateOne(

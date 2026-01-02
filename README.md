@@ -23,9 +23,17 @@ Planning to work on:
 
 The old frontend is under another repo titled "murmur"
 
-To run locally:
+To run the latest push locally:
+ - get your own mongo URI and firebase server SDK
+ - change the frontend api url to "http://localhost:5000"
  - run "docker compose up --build" in api folder
+ - wait for two locked and loaded messages
  - run "npm run dev" in frontend folder
- - go to "https://localhost:3000" 
+ - go to "localhost:3000" (or whatever port npm run dev finds available)
+
+To use the latest push online:
+ - go to "https://murmurs.web.app"
+ - tell your friends, and their friends/family, to join you
+ - be sure to spread the word, so I can getter better data to work with!
 
 Test it out and message me on how should upgrade it.
