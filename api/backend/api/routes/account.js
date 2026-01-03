@@ -48,11 +48,12 @@ router.post("/", limiter, async (req, res) => {
       displayName,
       createdAt: creationTime,
       lastLoginAt: creationTime,
-      embeddedBatchLimit: 32
+      embeddedBatchLimit: 32,
+      messagesSinceLastBatch: 0
     });
 
     await db.collection("rooms").updateOne(
-      { _id: new ObjectId("general") },
+      { _id: "general" },
       {
         $setOnInsert: {
           name: "general",

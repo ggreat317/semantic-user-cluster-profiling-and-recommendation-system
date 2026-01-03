@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from sentence_transformers import SentenceTransformer
 from umap_model import load_umap_model
-from datetime import datetime
+from datetime import datetime, timezone
 
 DECAY_RATE = 0.11
 CLUSTER_SIMILARITY_NEEDED = .75
@@ -72,7 +72,7 @@ def cosine_similarity(a, b, bIsAlreadyNormalized = False):
 
 # generates clusters from message meta data
 def computeClusters(messages: List[Message]):
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     clusters : Dict[int, Cluster] = {}
     for msg in messages:
         ageInDays = (now - msg.time).total_seconds()/86400
@@ -91,10 +91,10 @@ def computeClusters(messages: List[Message]):
 
     # normalizes clusters ( the weight part is to prevent unnecessary magnitude growth, its still the same angle)
     for cluster in clusters.values():
-        cluster.centroid = (cluster.centroid)/(cluster.weight)
+        cluster.centroid = ((cluster.centroid)/(cluster.weight)).tolist()
         norm = np.linalg.norm(cluster.centroid)
         if norm > 0: 
-            cluster.centroid = (cluster.centroid)/(norm)
+            cluster.centroid = ((cluster.centroid)/(norm)).tolist()
         
         # adds default values
         cluster.lastUpdated = now

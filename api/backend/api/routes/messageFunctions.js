@@ -133,7 +133,7 @@ export async function embeddingBatch(req, MESSAGE_BATCH_SIZE, EMBEDDED_BATCH_SIZ
     { $match: { ownerID: req.user.uid, label: { $in: clusterInNeedLabels } } },
     { $sort: { time: -1 }},
     { $group: { _id: "$label", messages: { $push: "$$ROOT" } } },
-    { $project: { $slice: ["$messages", (EMBEDDED_BATCH_SIZE)] } }
+    { $project: { messages: { $slice: ["$messages", (EMBEDDED_BATCH_SIZE)] } } }
   ]).toArray();
 
   const messages = messagesByLabel.flatMap(c => c.messages)
@@ -166,14 +166,30 @@ export async function embeddingBatch(req, MESSAGE_BATCH_SIZE, EMBEDDED_BATCH_SIZ
   return { status: "complete", reason: "all updates successful" };
 }
 
-export async function maintenance(req, takenLabels, EMBEDDED_BATCH_SIZE, now){
+export async function maintenance(req, takenLabels, messagesSinceLastBatch, EMBEDDED_BATCH_SIZE, now){
+  console.log("Attempting Maintenance")
 
-  console.log("Attempting to fetch user data")
+  //if( messagesSinceLastBatch < EMBEDDED_BATCH_SIZE ){
+  //  console.log("Not Enough Messages For Maintenance")
+  //  return { status: "skipped", reason: "no clusters to reweigh" };
+  //}
 
-  const userDoc = await db.collection("users").findOne({ uid: req.user.uid })
+  await clusterUpdate(req, EMBEDDED_BATCH_SIZE)
+  await clusterMake(req, takenLabels, EMBEDDED_BATCH_SIZE, now)
 
-  console.log("Successfully fetched user data")
+  console.log("Maintenance Performed Successfully")
 
+  console.log("Attempting to Reflect Maintenance on User")
+
+  await db.collection("users").updateOne(
+    { uid: req.user.uid},
+    { $set: { messagesSinceLastBatch: 0 } }
+  )
+
+  console.log("Successfully Reflected Maintenance on User")
+}
+
+async function clusterUpdate(req, EMBEDDED_BATCH_SIZE){
   console.log("Attempting to fetch clusters");
 
   const staleClusters = await db.collection("clusters").find(
@@ -185,8 +201,6 @@ export async function maintenance(req, takenLabels, EMBEDDED_BATCH_SIZE, now){
     { ownerID: req.user.uid, triggered: false, updatesPending: { $gt: 0 }},
     { projection: { label: 1 } }
   ).toArray()
-
-  const slowClusterLabels = slowClusters.map(c => c.label)
 
   console.log("Sucessfully fetched clusters")
   
@@ -201,14 +215,24 @@ export async function maintenance(req, takenLabels, EMBEDDED_BATCH_SIZE, now){
 
   console.log("Attempting to reweigh slow and stale clusters")
 
+  if(staleClusters.length === 0 && slowClusters.length === 0){
+    console.log("No Clusters to Reweigh!")
+    return { status: "skipped", reason: "no clusters to reweigh" };
+  }
+
+  console.log("clusters")
+  console.log(staleClusters)
+  console.log(slowClusters)
+
+  const slowClusterLabels = slowClusters.map(c => c.label)
   const messagesByLabel = await db.collection("messages").aggregate([
     { $match : {ownerID : req.user.uid, label: { $in: slowClusterLabels }}},
     { $sort: { time: -1 }},
     { $group: { _id: "$label", messages: { $push: "$$ROOT" } } },
-    { $project: { $slice: ["$messages", (EMBEDDED_BATCH_SIZE/2)] } }
+    { $project: { messages: { $slice: ["$messages", (EMBEDDED_BATCH_SIZE/2)] } } }
   ]).toArray()
 
-  const messages = messagesByLabel.flatMap(c => c.messages)
+  const messages = messagesByLabel ? messagesByLabel.flatMap(c => c.messages) : []
 
   const reweighResponse = await fetch("http://ml:8000/reweigh", {
     method: "POST",
@@ -236,8 +260,10 @@ export async function maintenance(req, takenLabels, EMBEDDED_BATCH_SIZE, now){
   await db.collection("clusters").bulkWrite(reweighBatchUpdate);
 
   console.log("Successfully reweighed slow and stale clusters")
+}
 
-  console.log("Attempting to make new clusters");
+async function clusterMake(req, takenLabels, EMBEDDED_BATCH_SIZE, now){
+  console.log("Attempting to batch messages");
 
   const embeddedBatch = await db.collection("messages").find({
     ownerID: req.user.uid,

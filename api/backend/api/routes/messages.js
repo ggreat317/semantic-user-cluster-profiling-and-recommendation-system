@@ -1,7 +1,6 @@
 import express from "express";
 import { db } from "../db.js";
 import { ObjectId } from "mongodb";
-import admin from "../middleware/firebaseAdmin.js"
 import * as message from "./messageFunctions.js";
 
 const router = express.Router();
@@ -15,12 +14,6 @@ router.post("/", async (req, res) => {
   const room = req.body.room;
   const now = new Date();
   const messageID = new ObjectId();
-
-  // necessary information for batching ML api
-  const userDoc = await db.collection("users").findOne({ uid: req.user.uid })
-  const MESSAGE_BATCH_SIZE = 32;
-  const EMBEDDED_BATCH_SIZE = userDoc.embeddedBatchLimit
-  const takenLabels = userDoc?.takenLabels ?? []
 
   // checking validity of request
 
@@ -45,19 +38,31 @@ router.post("/", async (req, res) => {
 
   try {
 
+    const userDoc = await db.collection("users").findOneAndUpdate(
+      { uid: req.user.uid },
+      { $inc: { messagesSinceLastBatch: 1 } },
+      { upsert: true, returnDocument: "after" }
+    );
+
+    // necessary information for batching ML api
+    const MESSAGE_BATCH_SIZE = 32;
+    const messagesSinceLastBatch = userDoc.messagesSinceLastBatch
+    const EMBEDDED_BATCH_SIZE = userDoc.embeddedBatchLimit
+    const takenLabels = userDoc.takenLabels ?? []
+
+
     // these are the four horseman of the backend
-    
     // uploads message to mongo historic
-    message.MongoDBUploadMessage(req, messageID, now)
+    await message.MongoDBUploadMessage(req, messageID, now)
 
     // uploads message to firebase real time
-    message.FirebaseUploadMessage(req, messageID, now)
+    await message.FirebaseUploadMessage(req, messageID, now)
 
     // makes embeddings
-    message.embeddingBatch(req, MESSAGE_BATCH_SIZE, EMBEDDED_BATCH_SIZE, now )
+    await message.embeddingBatch(req, MESSAGE_BATCH_SIZE, EMBEDDED_BATCH_SIZE, now )
     
     // makes and updates clusters
-    message.maintenance(req, takenLabels, EMBEDDED_BATCH_SIZE, now)
+    await message.maintenance(req, takenLabels, messagesSinceLastBatch, EMBEDDED_BATCH_SIZE, now)
 
     res.status(201).json({ id: messageID.toString() });
   } catch (err) {

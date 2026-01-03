@@ -107,7 +107,8 @@ def load_umap_model(UMAP_PATH):
     reducer = pickle.load(f)
   return reducer
 
-if (not(os.path.exists(UMAP3_PATH | UMAP5_PATH))):
+# could check one path but better safe than sorry
+if (not((os.path.exists(UMAP3_PATH)) and (os.path.exists(UMAP5_PATH)))):
   print("attempting to get umap")
   model = SentenceTransformer("all-MiniLM-L6-v2")
 
