@@ -3,7 +3,7 @@
 import { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../../config/firebase';
-import { DataBase } from './database';
+// import { DataBase } from './database';
 
 
 type Setter = React.Dispatch<React.SetStateAction<string>>
@@ -33,9 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, loading, room, setRoom }}>
-      <DataBase>
       {children}
-      </DataBase>
     </AuthContext.Provider>
   )
 }

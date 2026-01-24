@@ -40,15 +40,21 @@ router.post("/", async (req, res) => {
 
     const userDoc = await db.collection("users").findOneAndUpdate(
       { uid: req.user.uid },
-      { $inc: { messagesSinceLastBatch: 1 } },
+      { $inc: { 
+        messagesSinceLastLabelBatch: 1,
+        messagesSinceLastEmbedBatch: 1
+       } },
       { upsert: true, returnDocument: "after" }
     );
 
     // necessary information for batching ML api
+    const EMEDDING_MULTIPLIER = 2;
+    const LABEL_BATCH_MAX_SIZE = 512;
     const MESSAGE_BATCH_SIZE = 32;
-    const messagesSinceLastBatch = userDoc.messagesSinceLastBatch
-    const EMBEDDED_BATCH_SIZE = userDoc.embeddedBatchLimit
-    const takenLabels = userDoc.takenLabels ?? []
+    const messagesSinceLastLabelBatch = userDoc.messagesSinceLastLabelBatch;
+    const messagesSinceLastEmbedBatch = userDoc.messagesSinceLastEmbedBatch;
+    const EMBEDDED_BATCH_SIZE = userDoc.embeddedBatchLimit;
+    const takenLabels = userDoc.takenLabels ?? [];
 
 
     // these are the four horseman of the backend
@@ -57,12 +63,12 @@ router.post("/", async (req, res) => {
 
     // uploads message to firebase real time
     await message.FirebaseUploadMessage(req, messageID, now)
-
+    
     // makes embeddings
-    await message.embeddingBatch(req, MESSAGE_BATCH_SIZE, EMBEDDED_BATCH_SIZE, now )
+    await message.embeddingBatch(req, MESSAGE_BATCH_SIZE, EMBEDDED_BATCH_SIZE, now, messagesSinceLastEmbedBatch)
     
     // makes and updates clusters
-    await message.maintenance(req, takenLabels, messagesSinceLastBatch, EMBEDDED_BATCH_SIZE, now)
+    await message.maintenance(req, takenLabels, messagesSinceLastLabelBatch, EMBEDDED_BATCH_SIZE, now, EMEDDING_MULTIPLIER, LABEL_BATCH_MAX_SIZE )
 
     res.status(201).json({ id: messageID.toString() });
   } catch (err) {

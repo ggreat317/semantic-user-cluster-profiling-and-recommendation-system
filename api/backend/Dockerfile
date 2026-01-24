@@ -1,20 +1,20 @@
-# Use official Node.js image
+# uses node image
 FROM node:20
 
-# Set working directory
+# sets working dir
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# copies packages
 COPY package*.json ./
 
-# Install dependencies
+# install dependencies
 RUN npm install
 
-# Copy the rest of the code
+# copies code
 COPY . .
 
-# Expose backend port
+# exposes backend ( for local usage on server )
 EXPOSE 5000
 
-# Run 
+# runs index with nodemon for dev changing causing "instant" updates
 CMD ["npx", "nodemon", "api/index.js"]

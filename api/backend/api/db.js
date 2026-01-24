@@ -1,5 +1,5 @@
 import { MongoClient, ServerApiVersion } from "mongodb";
-import 'dotenv/config';  // loads MONGO_URI
+import 'dotenv/config'; 
 
 const uri = process.env.MONGO_URI;
 export const client = new MongoClient(uri, {
@@ -14,7 +14,7 @@ export let db;
 
 export async function connectDB() {
   if (db) return db;
-  await client.connect();   // connect to Atlas
+  await client.connect();
   db = client.db("myDatabase");
 
   // Indexes

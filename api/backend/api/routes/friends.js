@@ -11,6 +11,7 @@ router.get("/request", async (req, res) => {
     to: req.user.uid,
     status: "pending"
   }
+
   try {
     const result = await db.collection("friend_requests").find(query).sort({ updatedAt: -1 }).limit(100).toArray();
     if (result.length === 0) {
@@ -108,8 +109,16 @@ router.put("/acceptRequest/:friendID", async (req, res) => {
   const { friendID } = req.params;
   const userID = req.user.uid;
 
+  const userDoc = await db.collection("users").findOne({
+    uid: userID
+  })
+
+  if(!userDoc){
+    throw new Error("No User Doc Found!");
+  };
+
   try {
-    await acceptFriendRequest(userID, friendID);
+    await acceptFriendRequest(userID, friendID, userDoc.displayName);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -117,7 +126,7 @@ router.put("/acceptRequest/:friendID", async (req, res) => {
   }
 });
 
-async function acceptFriendRequest(userID, friendID) {
+async function acceptFriendRequest(userID, friendID, userName) {
   const newRoom = new ObjectId();
 
   const request = await db.collection("friend_requests").findOneAndDelete({
@@ -153,8 +162,13 @@ async function acceptFriendRequest(userID, friendID) {
     type: "F",
     users: [userID, friendID],
     name: newRoom.toString(),
-    lastAccessed: roomCreationTime
   });
+
+  await admin.database().ref(`rooms/${newRoom}`).update({
+    [`members/users/${userID}/userName`]: userName,
+    [`members/users/${friendID}/userName`]: request.fromName,
+    [`metadata/lastAccessed`]: roomCreationTime
+  })
 
   await db.collection("users").updateOne(
     { uid: userID },

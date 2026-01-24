@@ -53,7 +53,7 @@ class EmbedRequest(BaseModel):
 
 class ClusterRequest(BaseModel):
     messages: List[Message]
-    takenLabels: Set[int]
+    takenLabels: Set[int] | None = None
 
 class ReweighRequest(BaseModel):
     messages: List[Message] | None = None
@@ -155,14 +155,17 @@ def getLabels(req: ClusterRequest):
 
     # scans embeddings
     X = np.array([m.embedding for m in req.messages], dtype=np.float32)
-    clusterer = hdbscan.HDBSCAN(
-        min_cluster_size = 2,
-        metric = 'euclidean'
-        )
-    labels = clusterer.fit_predict(X).tolist()
-    
+    if(len(X) == 1):
+        labels = [-1]
+    else:
+        clusterer = hdbscan.HDBSCAN(
+            min_cluster_size = 2,
+            metric = 'euclidean'
+            )
+        labels = clusterer.fit_predict(X).tolist()
+
     # remaps labels to global unique labels
-    taken = set(req.takenLabels)
+    taken = set(req.takenLabels) if req.takenLabels else set()
     labelMap = {}
     for label in set(labels):
         if label == -1:
@@ -186,7 +189,6 @@ def getLabels(req: ClusterRequest):
         messages.append(msg)
 
     clusters = computeClusters(messages)
-
     # returns proper json
     return {
         "clusters" : clusters,
@@ -230,6 +232,8 @@ def health():
     return {"status": "ok"}, 200
 
 """""
+# TLDR: DO NOT USE, IT IS REDUNDANT
+
 # Old UMAP, uncover if decide to only calculate 3D UMAPS per request, little traffic caused by it
 # In my opinion, its better to calc. with the initial embed to prevent repeat requests of it
 # Repeat requests can be blocked by fetching if already there, but that complicates it

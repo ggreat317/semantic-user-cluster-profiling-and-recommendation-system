@@ -17,39 +17,38 @@ router.post("/", limiter, async (req, res) => {
   const { email, password, displayName } = req.body;
 
   if (!email || !password || !displayName) {
-    return res.status(400).json({ error: "Email, password, and displayName are required" });
+    return res.status(400).json({ error: "Email, password, and name are required" });
   }
 
+  // small check to see if acc. already made
   try {
-    // Check if user already exists in Firebase
-    try {
-      const existingUser = await admin.auth().getUserByEmail(email);
-      return res.status(400).json({ error: "Email already in use" });
-    } catch (err) {
-      // Not found is OK
-    }
+    await admin.auth().getUserByEmail(email);
+    return res.status(400).json({ error: "Email already in use" });
+  } catch (err) {
+    console.log("attempting to make new account");
+  }
 
-    // Create Firebase Auth user
-    const userRecord = await admin.auth().createUser({
-      email,
-      password,
-      displayName
-    });
+  // creates firebase user with only basic info here, to prevent frontend access
+  const userRecord = await admin.auth().createUser({
+    email,
+    password,
+    displayName
+  });
 
-    // Optionally: set custom claims or roles
-    // await admin.auth().setCustomUserClaims(userRecord.uid, { role: "user" });
+  try {
 
-    // Insert user into Mongo
+    //  for mongo insert with all that juicy metadata
     const creationTime = new Date();
 
-    const result = await db.collection("users").insertOne({
+    await db.collection("users").insertOne({
       uid: userRecord.uid,
       email,
       displayName,
       createdAt: creationTime,
       lastLoginAt: creationTime,
-      embeddedBatchLimit: 32,
-      messagesSinceLastBatch: 0
+      embeddedBatchLimit: 1,
+      messagesSinceLastLabelBatch: 0,
+      messagesSinceLastEmbedBatch: 0,
     });
 
     await db.collection("rooms").updateOne(
@@ -70,14 +69,21 @@ router.post("/", limiter, async (req, res) => {
       { upsert: true }
     );
 
-    await admin.firestore()
-      .collection("roomVault")
-      .doc("general")
-      .set(
+    await admin.firestore().collection("roomVault").doc("general").set(
         { users: admin.firestore.FieldValue.arrayUnion(userRecord.uid) },
         { merge: true }
-      );
-    // Generate a custom Firebase token for frontend sign-in
+    );
+
+    console.log("attempting to update RTDB")
+
+    await admin.database().ref(`rooms/general`).update({
+      [`members/users/${userRecord.uid}/userName`]: displayName,
+      [`metadata/lastAccessed`]: creationTime
+    });
+
+    console.log("successfully updated RTDB")
+
+    // generates a custom Firebase token for frontend sign-in
     const firebaseToken = await admin.auth().createCustomToken(userRecord.uid);
 
     return res.status(201).json({
@@ -87,7 +93,25 @@ router.post("/", limiter, async (req, res) => {
     });
   } catch (err) {
     console.error("Failed to create user:", err);
+    console.log("failure in account creation");
+    console.log("attempting to undo progress in failed account creation");
+
+    await admin.auth().deleteUser(userRecord.uid);
+
+    await db.collection("users").deleteOne({ uid: userRecord.uid });
+
+    await db.collection("rooms").updateOne(
+      { _id: "general" },
+      { $pull: { users: { uid: userRecord.uid } } }
+    );
+
+    await admin.firestore().collection("roomVault").doc("general").update(
+        { users: admin.firestore.FieldValue.arrayRemove(userRecord.uid) },
+    );
+
+    console.log("successfully undid progress in failed account creation");
     return res.status(500).json({ error: "Internal server error" });
+
   }
 });
 

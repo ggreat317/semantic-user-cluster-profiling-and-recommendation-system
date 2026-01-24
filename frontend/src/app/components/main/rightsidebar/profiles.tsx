@@ -1,46 +1,62 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../homepage/auth';
-import { getDatabase, ref, onValue, off} from "firebase/database";
+import { db } from "../../../config/firebase";
 import { sendFriendRequest } from '../api/request';
 import { loadOtherUMAP } from '../api/profiles';
 import ProfileUMAP from './profileUMAP';
+import { User } from 'firebase/auth';
+import { query, collection, onSnapshot } from 'firebase/firestore';
+
+import { getDatabase, ref, onValue } from 'firebase/database';
+import { on } from 'events';
+
+type PublicUserRTDBMap = {
+  [userID : string]: {
+    userName: string;
+  }
+};
 
 type PublicUser = {
   userID: string;
   userName: string;
 };
 
-export function Profiles() {
+
+export function Profiles({user, room} : {user : User, room : string}) {
   const [users, setUsers] = useState<PublicUser[]>([]);
-  const { user, loading } = useAuth();
+  const db = getDatabase();
+
+  // listener from rtdb to display current room users
+  // security already set up in the rtdb and backend
 
   useEffect(() => {
-    if (!user) {
-      setUsers([]);
-      return;
+    if (!user || !room) {
+      return setUsers([]);
     }
 
-    const db = getDatabase();
-    const usersRef = ref(db, "users");
+    // gets reference from rtdb
+    const membersRef = ref(db, `rooms/${room}/members/users`);
 
-    onValue(usersRef, (snapshot) => {
-      if (!snapshot.exists()) return;
+    // grabs data at reference
+    const unsubscribe = onValue(membersRef, snapshot => {
+      const data : PublicUserRTDBMap = snapshot.val() ?? {};
 
-      const data = snapshot.val();
-
-      const list = Object.entries(data)
+      // alphabetically sorts the member list
+      const memberList = Object.entries(data)
         .filter(([id]) => id !== user.uid)
         .map(([id, u]: any) => ({
           userID: id,
           userName: u.userName
         }))
         .sort((a, b) => a.userName.localeCompare(b.userName));
+      
+      // sets users to member list
+      setUsers(memberList)
+    })
 
-      setUsers(list);
-    });
+    return ()=>unsubscribe();
 
-    return () => off(usersRef);
-  }, [user, loading]);
+  }, [db, room]);
+
 
   return (
     <div className="profiles">
@@ -64,20 +80,24 @@ function ProfileRow({ userID, userName }: {userID: string; userName: string;}) {
   if(!userName){ return; }
 
   async function loadProfile() {
+    console.log("loading")
     if (loading) return;
     setLoading(true);
-    console.log("test");
-    const coords = await loadOtherUMAP(userID);
-    console.log(coords);
-    console.log(coords);
-    setPoints(coords);
+    try{
+      console.log("im trying to load the umap");
+      const coords = await loadOtherUMAP(userID);
+      console.log(coords);
+      console.log(coords);
+      setPoints(coords);
+    }catch{
+      setLoading(false);
+    }
     setLoading(false);
   }
 
   function handleToggle() {
-    console.log("loading")
     setOpen((state) => !state);
-    if (!open) loadProfile(); // fetch only once
+    if (!open) loadProfile(); 
   }
 
   return (
@@ -130,3 +150,62 @@ function FriendButton({ recipientID }: { recipientID: string }) {
 }
 
 
+
+// Old Code
+
+
+  // useEffect(() => {
+  //   if (!db || !room) return;
+
+  //   const unsubscribe = onSnapshot(doc(db, "roomVault", room), (snapshot)=> {
+  //     if (!snapshot.exists()) {
+  //       return
+  //     }
+  //     if 
+  //     const users = snapshot.data().users
+
+
+  //     const liveMessages = snapshot.docs.map(doc => {
+  //       const data = doc.data();
+  //       return{
+  //         text: data.text,
+  //         time: data.time.toDate(),
+  //         ownerID: data.ownerID,
+  //         userName: data.userName,
+  //         id: doc.id
+  //       };
+  //     });
+  //     setMessages(prev => {
+  //       const existingIds = new Set(prev.map(m => m.id));
+  //       const newMessages = liveMessages.filter(m => !existingIds.has(m.id));
+  //       return [...prev, ...newMessages];
+  //     })
+  //   });
+
+  //   return () => unsubscribe();
+  // }, [room, db])
+
+
+  // useEffect(() => {
+  //   if (!user || !room) {
+  //     return setUsers([]);
+  //   }
+
+  //   onValue(usersRef, (snapshot) => {
+  //     if (!snapshot.exists()) return;
+
+  //     const data = snapshot.val();
+
+  //     const list = Object.entries(data)
+  //       .filter(([id]) => id !== user.uid)
+  //       .map(([id, u]: any) => ({
+  //         userID: id,
+  //         userName: u.userName
+  //       }))
+  //       .sort((a, b) => a.userName.localeCompare(b.userName));
+
+  //     setUsers(list);
+  //   });
+
+  //   return () => off(usersRef);
+  // }, [user, loading]);

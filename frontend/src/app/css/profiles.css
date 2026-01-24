@@ -10,13 +10,13 @@
   font-family: sans-serif;
   flex:.3;
 }
-
+/*
 @media (max-width:1000px){
   .match{
     display: none;
   }
 }
-
+*/
 
 .big{
   color:var(--text);

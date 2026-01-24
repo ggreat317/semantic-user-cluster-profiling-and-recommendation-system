@@ -35,3 +35,24 @@ export async function loadOtherUMAP(userID) {
 
   return await res.json();
 }
+
+export async function loadOthers(roomID){
+  // code below should be ran through firebase instead, use this if needed for stand stills
+  /*
+  const token = await getIdToken();
+
+  const res =  await fetch(`${API_URL}/profiles/room/${roomID}`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${token}`
+    }
+  });
+
+  if(!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to get profiles ${res.status} ${errorText}`);
+  }
+
+  return await res.json();
+  */
+}

@@ -25,7 +25,7 @@ export default function Main() {
 
   const router = useRouter();
   // const pathname = usePathname();
-  const { user, loading } = useAuth();
+  const { user, room, loading } = useAuth();
 
   const [hydrated, setHydrated] = useState(false);
   
@@ -60,11 +60,11 @@ export default function Main() {
 
   return (
     <div>
-      {!loading &&
+      {!loading && user && room &&
         <div className="Murmur">
           <LeftSidebar></LeftSidebar>
-          <Chat></Chat>
-          <RightSidebar></RightSidebar>
+          <Chat user={user} room={room}></Chat>
+          <RightSidebar user={user} room={room} ></RightSidebar>
         </div>
       }
       {loading && <Loading></Loading>}

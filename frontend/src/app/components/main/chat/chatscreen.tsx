@@ -3,8 +3,9 @@ import { db } from "../../../config/firebase";
 import { collection, query, orderBy, startAfter, onSnapshot, Timestamp } from "firebase/firestore";
 import { useAuth } from '../../homepage/auth';
 import { loadOlderMessages, normalizeDate } from '../api/get.js';
+import { User } from "firebase/auth";
 
-export function ChatScreen({room} : {room : string}) {
+export function ChatScreen({user, room} : {user : User, room : string}) {
 
   type FirestoreMessage = {
     text: string;
@@ -14,9 +15,8 @@ export function ChatScreen({room} : {room : string}) {
     id: string;
   }
 
-  const { user } = useAuth();
   const [messages, setMessages] = useState<FirestoreMessage[]>([]);
-  const [ historyLoaded, setHistoryLoaded] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const topRef =  useRef<HTMLDivElement | null>(null);
@@ -28,7 +28,9 @@ export function ChatScreen({room} : {room : string}) {
   }, [messages, isAtBottom]);
 
   useEffect(() => {
-    if (!user || !room) return;
+    if (!room){
+      return setMessages([]);
+    };
 
     let active = true;
     async function loadInitial() {
@@ -89,8 +91,6 @@ export function ChatScreen({room} : {room : string}) {
 
     return () => unsubscribe();
   }, [room, db, historyLoaded])
-  // add room id here
-
 
   const chatMessage = messages.map((message) => {
     const time = normalizeDate(message.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 

@@ -30,7 +30,8 @@ The old frontend is under another repo titled "murmur"
 
 To run the latest push locally:
  - get your own mongo URI and firebase server SDK
- - change the frontend api url to "http://localhost:5000"
+ - change the frontend api url in /frontend/src/app/components/main/api/token to "http://localhost:5000" 
+
  - run "docker compose up --build" in api folder
  - wait for two locked and loaded messages, the ML takes about a minute to load up ( 2 UMAPS )
  - run "npm run dev" in frontend folder

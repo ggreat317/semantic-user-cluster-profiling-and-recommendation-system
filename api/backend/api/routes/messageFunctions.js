@@ -1,9 +1,9 @@
 import { db } from "../db.js";
 import admin from "../middleware/firebaseAdmin.js"
 
-
+// puts message in mongo for historic
 export async function MongoDBUploadMessage(req, messageID, now){
-  console.log("Attempting to post message to MongoDB")
+  // attempts to post to mongo
   await db.collection("messages").insertOne({
     _id: messageID,
     ...req.body,
@@ -21,9 +21,9 @@ export async function MongoDBUploadMessage(req, messageID, now){
   console.log("Successfully posted to MongoDB");
 }
 
-
+// puts message in firebase for easy frontend fanout
 export async function FirebaseUploadMessage(req, messageID, now){
-  console.log("Attempting to post to Firebase");
+  // attempting to post to firebase
   await admin.firestore().collection("rooms").doc(req.body.room).collection("messages").doc(`${messageID}`).set({
     ...req.body,
     time: admin.firestore.FieldValue.serverTimestamp(),
@@ -36,43 +36,46 @@ export async function FirebaseUploadMessage(req, messageID, now){
   console.log("Successfully posted to Firebase");
 }
 
+// batches embeddings
+export async function embeddingBatch(req, MESSAGE_BATCH_SIZE, EMBEDDED_BATCH_SIZE, now, messagesSinceLastEmbedBatch){
 
-export async function embeddingBatch(req, MESSAGE_BATCH_SIZE, EMBEDDED_BATCH_SIZE, now){
-  console.log("Attempting to batch messages")
+  // checks if enough messages to batch
+  
+  if(messagesSinceLastEmbedBatch < MESSAGE_BATCH_SIZE && messagesSinceLastEmbedBatch < EMBEDDED_BATCH_SIZE){
+    console.log("Not Enough Messages to Batch");
+    return { status: "skipped", reason: "batch did not fill" };
+  }
+
+  // attempting to batch messages
 
   const messageBatch = await db.collection("messages").find({
     ownerID: req.user.uid,
     processedForEmbed: false
   }).limit(MESSAGE_BATCH_SIZE).toArray();
 
-  if(messageBatch.length < MESSAGE_BATCH_SIZE){
-    console.log("Not Enough Messages to Batch")
-    return { status: "skipped", reason: "batch did not fill" }
-  }
+  const texts = messageBatch.map(msg => msg.text);
 
-  const texts = messageBatch.map(msg => msg.text)
+  console.log("Successfully batched messages");
 
-  console.log("Successfully batched messages")
-
-  console.log("Attempting to post embeddings to MongoDB")
+  console.log("Attempting to post embeddings to MongoDB");
 
   const userClusters = await db.collection("clusters").find(
     { ownerID: req.user.uid },
     { projection: { label: 1, centroid: 1 } }
-  ).toArray()
+  ).toArray();
 
   const embedResponse = await fetch("http://ml:8000/embed", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ texts: texts, clusters: userClusters }),
+    body: JSON.stringify({ texts, clusters: userClusters })
   });
-  const embedData = await embedResponse.json()
+  const embedData = await embedResponse.json();
 
   if(
     embedData.embeddings.length !== messageBatch.length ||
     embedData.labels.length !== messageBatch.length
   ){
-    throw new Error("embeddings return mismatch")
+    throw new Error("embeddings return mismatch");
   }
 
   const messageBatchUpdate = messageBatch.map((msg, i) => ({
@@ -163,19 +166,29 @@ export async function embeddingBatch(req, MESSAGE_BATCH_SIZE, EMBEDDED_BATCH_SIZ
   }));
   await db.collection("clusters").bulkWrite(clusterBatchUpdate);
 
+  console.log("Attempting to Reflect Embedding on User")
+
+  await db.collection("users").updateOne(
+    { uid: req.user.uid},
+    { $set: { messagesSinceLastEmbedBatch: 0 } }
+  )
+
+  console.log("Successfully Reflected Embedding on User")
+
   return { status: "complete", reason: "all updates successful" };
 }
 
-export async function maintenance(req, takenLabels, messagesSinceLastBatch, EMBEDDED_BATCH_SIZE, now){
+// runs maintenance
+export async function maintenance(req, takenLabels, messagesSinceLastLabelBatch, EMBEDDED_BATCH_SIZE, now, EMEDDING_MULTIPLIER, LABEL_BATCH_MAX_SIZE ){
   console.log("Attempting Maintenance")
   
-  if( messagesSinceLastBatch < EMBEDDED_BATCH_SIZE ){
+  if( messagesSinceLastLabelBatch < EMBEDDED_BATCH_SIZE ){
     console.log("Not Enough Messages For Maintenance")
     return { status: "skipped", reason: "no clusters to reweigh" };
   }
 
   await clusterUpdate(req, EMBEDDED_BATCH_SIZE)
-  await clusterMake(req, takenLabels, EMBEDDED_BATCH_SIZE, now)
+  await clusterMake(req, takenLabels, EMBEDDED_BATCH_SIZE, now, EMEDDING_MULTIPLIER, LABEL_BATCH_MAX_SIZE )
 
   console.log("Maintenance Performed Successfully")
 
@@ -183,7 +196,7 @@ export async function maintenance(req, takenLabels, messagesSinceLastBatch, EMBE
 
   await db.collection("users").updateOne(
     { uid: req.user.uid},
-    { $set: { messagesSinceLastBatch: 0 } }
+    { $set: { messagesSinceLastLabelBatch: 0 } }
   )
 
   console.log("Successfully Reflected Maintenance on User")
@@ -262,32 +275,43 @@ async function clusterUpdate(req, EMBEDDED_BATCH_SIZE){
   console.log("Successfully reweighed slow and stale clusters")
 }
 
-async function clusterMake(req, takenLabels, EMBEDDED_BATCH_SIZE, now){
+async function clusterMake(req, takenLabels, EMBEDDED_BATCH_SIZE, now, EMEDDING_MULTIPLIER, LABEL_BATCH_MAX_SIZE){
   console.log("Attempting to batch messages");
 
-  const embeddedBatch = await db.collection("messages").find({
+  let embeddedBatch = await db.collection("messages").find({
     ownerID: req.user.uid,
     processedForEmbed: true,
     processedForCluster: { $ne: true }
-  }).limit(EMBEDDED_BATCH_SIZE).toArray();
+  }).limit(LABEL_BATCH_MAX_SIZE).toArray();
+
+  console.log("Attempting clean up mid batch");
+  if(embeddedBatch.length < LABEL_BATCH_MAX_SIZE){
+    const extraSpace = LABEL_BATCH_MAX_SIZE - embeddedBatch.length
+    const unclusteredEmbeddedBatch =  await db.collection("messages").find({
+      ownerID: req.user.uid,
+      label: -1
+    }).limit(extraSpace).toArray();
+
+    embeddedBatch = embeddedBatch.concat(unclusteredEmbeddedBatch);
+  }
+  console.log("Successfully cleaned up mid batch");
 
   if(embeddedBatch.length < EMBEDDED_BATCH_SIZE){
-    console.log("Not Enough Messages to Batch!")
+    console.log("Not Enough Messages to Batch!");
     return { status: "skipped", reason: "not enough embeddings to batch" };
   }
+  console.log("Successfully batched messages");
 
-  console.log("Successfully batched messages")
-
-  console.log("Attempting to make new clusters")
+  console.log("Attempting to make new clusters");
 
   const clusterResponse = await fetch("http://ml:8000/cluster", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages: embeddedBatch, takenLabels }),
   });
-  const clusterData = await clusterResponse.json()
+  const clusterData = await clusterResponse.json();
 
-  console.log("Attempting to post labels to MongoDB")
+  console.log("Attempting to post labels to MongoDB");
 
   await db.collection("users").updateOne(
     { uid: req.user.uid },
@@ -310,35 +334,42 @@ async function clusterMake(req, takenLabels, EMBEDDED_BATCH_SIZE, now){
 
   console.log("Successfully posted labels to MongoDB");
 
-  console.log("Attempting to post clusters to MongoDB")
+  console.log("Attempting to post clusters to MongoDB");
 
-  const newClusterUpdate = clusterData.clusters.map(cluster =>({
-    insertOne: {
-      document: {
-        ownerID: req.user.uid,
-        label: cluster.label,
-        centroid: cluster.centroid,
-        count: cluster.count,
-        weight: cluster.weight,
-        lastUpdated: now,
-        updatesPending: 0,
-        triggered: false
+  if (clusterData.clusters && clusterData.clusters.length > 0){
+
+    console.log("clusters")
+    console.log(clusterData.clusters)
+    const newClusterUpdate = clusterData.clusters.map(cluster =>({
+      insertOne: {
+        document: {
+          ownerID: req.user.uid,
+          label: cluster.label,
+          centroid: cluster.centroid,
+          count: cluster.count,
+          weight: cluster.weight,
+          lastUpdated: now,
+          updatesPending: 0,
+          triggered: false
+        }
       }
-    }
-  }));
+    }));
 
-  await db.collection("clusters").bulkWrite(newClusterUpdate);
-  
-  console.log("Successfully posted clusters to MongoDB")
+    await db.collection("clusters").bulkWrite(newClusterUpdate);
 
-  console.log("Attempting to update user batch max")
+    console.log("Successfully posted  clusters to MongoDB");
+  }else{
+    console.log("No new Clusters to post to MongoDB");
+  }
 
-  if ( EMBEDDED_BATCH_SIZE * 2 < 513 ){
+  console.log("Attempting to update user batch max");
+
+  if ( EMBEDDED_BATCH_SIZE < LABEL_BATCH_MAX_SIZE ){
     await db.collection("users").updateOne(
       {uid: req.user.uid},
-      {$set: {embeddedBatchLimit : EMBEDDED_BATCH_SIZE * 2}}
+      {$set: {embeddedBatchLimit : EMBEDDED_BATCH_SIZE * EMEDDING_MULTIPLIER}}
     );
   }
 
-  console.log("Successfully reflected user batch max")
+  console.log("Successfully reflected user batch max");
 }

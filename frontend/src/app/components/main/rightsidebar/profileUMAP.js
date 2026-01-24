@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic"
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false })
-import { useCss} from "../../homepage/useCss"
+import { useCss } from "../../homepage/useCss"
 
 export default function profileUMAP({ points }) {
 
@@ -15,7 +15,6 @@ export default function profileUMAP({ points }) {
 
 
   const colors = useCss(["--button", "--text", "--time"])
-  console.log(colors)
 
   return (
     <Plot
