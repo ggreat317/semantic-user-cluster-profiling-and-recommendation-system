@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
-import { db } from "../../../config/firebase";
 import { sendFriendRequest } from '../api/request';
 import { loadOtherUMAP } from '../api/profiles';
 import ProfileUMAP from './profileUMAP';
 import { User } from 'firebase/auth';
-import { query, collection, onSnapshot } from 'firebase/firestore';
 
 import { getDatabase, ref, onValue } from 'firebase/database';
-import { on } from 'events';
 
 type PublicUserRTDBMap = {
   [userID : string]: {
@@ -86,10 +83,10 @@ function ProfileRow({ userID, userName }: {userID: string; userName: string;}) {
     try{
       console.log("im trying to load the umap");
       const coords = await loadOtherUMAP(userID);
-      console.log(coords);
-      console.log(coords);
       setPoints(coords);
+      console.log("pass")
     }catch{
+      console.log("fail")
       setLoading(false);
     }
     setLoading(false);
@@ -112,8 +109,9 @@ function ProfileRow({ userID, userName }: {userID: string; userName: string;}) {
       {open && (
         <div className="aboutme">
             {loading && <div>Loading...</div>}
-            {!loading && points && <ProfileUMAP points={points}></ProfileUMAP>}
+            {!loading && points.length!=0 && <ProfileUMAP points={points}></ProfileUMAP>}
           <div>
+            {!loading && points.length==0 && <div>Not Enough Messsages for Profile Display</div>}
             <FriendButton recipientID={userID} />
           </div>
         </div>

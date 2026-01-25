@@ -32,14 +32,20 @@ router.get("/UMAP/others/:userID", async (req, res) =>{
 
   // grabs UMAPed message meta data of that user without text, for user privacy
   const result = await db.collection("messages").aggregate([
-    { ownerID: userID, processedForCluster: true },
-      {
-        $project: {
-          _id: 1,
-          label: 1,
-          umap3: 1,
-        }
-      },
+    { 
+      $match: {
+        ownerID: userID, 
+        processedForCluster: true 
+      }
+    }
+    ,
+    {
+      $project: {
+        _id: 1,
+        label: 1,
+        umap3: 1,
+      }
+    },
   ]).limit(512).toArray()
 
   // sends the UMAPed meta data

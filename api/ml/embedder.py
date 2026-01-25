@@ -19,6 +19,14 @@ reducer5 = None
 UMAP3_PATH = "umap3_model.pkl"
 UMAP5_PATH = "umap5_model.pkl"
 
+LABELS = ["games", "career", "sports", "politics", "finance", "health", "mental", "random", "sports",
+          "politics", "hate", "love", "self", "compliments", "introductions", "anime", "shows", "movies",
+          "books", "cars", "religion", "music", "greetings", "advice", "socials", "random", "reccommend",
+          "ai", "complaints", "how", "versus", "speculation", "time", "random"
+          ]
+
+
+
 # for server cold start health checks, works in tandem with /health
 
 @asynccontextmanager
@@ -47,15 +55,15 @@ class Message(BaseModel):
     time: datetime
     weight: float | None = None
 
-class EmbedRequest(BaseModel):
+class TextsClusters(BaseModel):
     texts: List[str]
     clusters: List[Cluster] | None = None
 
-class ClusterRequest(BaseModel):
+class MessagesLabels(BaseModel):
     messages: List[Message]
     takenLabels: Set[int] | None = None
 
-class ReweighRequest(BaseModel):
+class MessagesClusters(BaseModel):
     messages: List[Message] | None = None
     clusters: List[Cluster] | None = None
 
@@ -102,20 +110,18 @@ def computeClusters(messages: List[Message]):
     # returns clusters
     return [c.model_dump() for c in clusters.values()]
 
-@app.post("/embed")
-def getEmbedding(req: EmbedRequest):
-    # embeds texts
-    embeddings = model.encode(req.texts)
+# REMEMBER
+# REMEMBER try to vectorize or make an effective C hot function later
+# REMEMBER
+def proximityAssign(embeddings: np.ndarray, clusters: List[Cluster] | None):
 
-    # umap transforms embeds
-    X = np.array(embeddings, dtype=np.float32)
-
-    # pure visualization embedding
-    umap3_coords = reducer3.transform(X)
-
-    # low-dimensionality embedding
-    umap5_coords = reducer5.transform(X)
-
+    # returns unassigned if no clusters to assign to
+    if not clusters:
+        return {
+        "labels": [-1] * len(embeddings),
+        "impactedClusters" : {}
+     }
+    
     # assigning embeds to pre-existing clusters if applicable
     labels = []
     impactedClusters = {}
@@ -125,12 +131,11 @@ def getEmbedding(req: EmbedRequest):
         bestSim = 0.0
 
         # finds most similar cluster if applicable
-        if req.clusters:
-            for cluster in req.clusters:
-                sim = cosine_similarity(embed, cluster.centroid, True)
-                if sim > bestSim:
-                    bestSim = sim
-                    label = cluster.label
+        for cluster in clusters:
+            sim = cosine_similarity(embed, cluster.centroid, True)
+            if sim > bestSim:
+                bestSim = sim
+                label = cluster.label
 
         # if similarity is less than the neccesary then it doesnt apply
         if bestSim > CLUSTER_SIMILARITY_NEEDED:
@@ -140,26 +145,44 @@ def getEmbedding(req: EmbedRequest):
             label = -1
 
         labels.append(label)
+    return {
+        "labels": labels,
+        "impactedClusters" : impactedClusters
+    }
+
+@app.post("/embed")
+def getEmbedding(req: TextsClusters):
+    # embeds texts
+    embeddings = model.encode(req.texts)
+    X = np.array(embeddings, dtype=np.float32)
+
+    # pure visualization embedding
+    umap3_coords = reducer3.transform(X)
+
+    # low-dimensionality embedding
+    umap5_coords = reducer5.transform(X)
+
+    result = proximityAssign(X, req.clusters)
 
     # returning proper json
     return {
         "embeddings" : embeddings.tolist(),
         "umap3": umap3_coords.tolist(),
         "umap5": umap5_coords.tolist(),
-        "labels": labels,
-        "impactedClusters" : impactedClusters
+        "labels": result["labels"],
+        "impactedClusters" : result["impactedClusters"]
     }
 
 @app.post("/cluster")
-def getLabels(req: ClusterRequest):
+def getLabels(req: MessagesLabels):
 
     # scans embeddings
     X = np.array([m.embedding for m in req.messages], dtype=np.float32)
-    if(len(X) == 1):
+    if(len(X) <= 5):
         labels = [-1]
     else:
         clusterer = hdbscan.HDBSCAN(
-            min_cluster_size = 2,
+            min_cluster_size = 5,
             metric = 'euclidean'
             )
         labels = clusterer.fit_predict(X).tolist()
@@ -197,7 +220,7 @@ def getLabels(req: ClusterRequest):
     }
 
 @app.post("/reweigh")
-def reweighClusters(req: ReweighRequest):
+def reweighClusters(req: MessagesClusters):
     clusters: list[Cluster] = []
 
     now = datetime.now()
@@ -218,6 +241,15 @@ def reweighClusters(req: ReweighRequest):
     
     return {
         "clusters" : [c.model_dump() for c in clusters]
+    }
+
+@app.post("/cleanup")
+def cleanUpClusters(req: MessagesClusters):
+    X = np.array([m.embedding for m in req.messages], dtype=np.float32)
+    result = proximityAssign(X, req.clusters)
+    return {
+        "labels": result["labels"],
+        "impactedClusters" : result["impactedClusters"]  
     }
 
 # for health checks and making sure the reducer is properly loaded on server starts

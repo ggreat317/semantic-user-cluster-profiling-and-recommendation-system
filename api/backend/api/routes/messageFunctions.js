@@ -180,15 +180,17 @@ export async function embeddingBatch(req, MESSAGE_BATCH_SIZE, EMBEDDED_BATCH_SIZ
 
 // runs maintenance
 export async function maintenance(req, takenLabels, messagesSinceLastLabelBatch, EMBEDDED_BATCH_SIZE, now, EMEDDING_MULTIPLIER, LABEL_BATCH_MAX_SIZE ){
-  console.log("Attempting Maintenance")
+  
+  console.log("Attempting Regular Maintenance");
   
   if( messagesSinceLastLabelBatch < EMBEDDED_BATCH_SIZE ){
-    console.log("Not Enough Messages For Maintenance")
+    console.log("Not Enough Messages For Maintenance");
     return { status: "skipped", reason: "no clusters to reweigh" };
   }
 
-  await clusterUpdate(req, EMBEDDED_BATCH_SIZE)
-  await clusterMake(req, takenLabels, EMBEDDED_BATCH_SIZE, now, EMEDDING_MULTIPLIER, LABEL_BATCH_MAX_SIZE )
+  await clusterUpdate(req, EMBEDDED_BATCH_SIZE);
+  await clusterMake(req, takenLabels, EMBEDDED_BATCH_SIZE, now, EMEDDING_MULTIPLIER, LABEL_BATCH_MAX_SIZE );
+  await cleanup(req, LABEL_BATCH_MAX_SIZE, now)
 
   console.log("Maintenance Performed Successfully")
 
@@ -202,6 +204,7 @@ export async function maintenance(req, takenLabels, messagesSinceLastLabelBatch,
   console.log("Successfully Reflected Maintenance on User")
 }
 
+// processes updates on current clusters
 async function clusterUpdate(req, EMBEDDED_BATCH_SIZE){
   console.log("Attempting to fetch clusters");
 
@@ -232,10 +235,6 @@ async function clusterUpdate(req, EMBEDDED_BATCH_SIZE){
     console.log("No Clusters to Reweigh!")
     return { status: "skipped", reason: "no clusters to reweigh" };
   }
-
-  console.log("clusters")
-  console.log(staleClusters)
-  console.log(slowClusters)
 
   const slowClusterLabels = slowClusters.map(c => c.label)
   const messagesByLabel = await db.collection("messages").aggregate([
@@ -275,6 +274,7 @@ async function clusterUpdate(req, EMBEDDED_BATCH_SIZE){
   console.log("Successfully reweighed slow and stale clusters")
 }
 
+// makes clusters based on unprocessed unclustered embedded "new" messages 
 async function clusterMake(req, takenLabels, EMBEDDED_BATCH_SIZE, now, EMEDDING_MULTIPLIER, LABEL_BATCH_MAX_SIZE){
   console.log("Attempting to batch messages");
 
@@ -283,18 +283,6 @@ async function clusterMake(req, takenLabels, EMBEDDED_BATCH_SIZE, now, EMEDDING_
     processedForEmbed: true,
     processedForCluster: { $ne: true }
   }).limit(LABEL_BATCH_MAX_SIZE).toArray();
-
-  console.log("Attempting clean up mid batch");
-  if(embeddedBatch.length < LABEL_BATCH_MAX_SIZE){
-    const extraSpace = LABEL_BATCH_MAX_SIZE - embeddedBatch.length
-    const unclusteredEmbeddedBatch =  await db.collection("messages").find({
-      ownerID: req.user.uid,
-      label: -1
-    }).limit(extraSpace).toArray();
-
-    embeddedBatch = embeddedBatch.concat(unclusteredEmbeddedBatch);
-  }
-  console.log("Successfully cleaned up mid batch");
 
   if(embeddedBatch.length < EMBEDDED_BATCH_SIZE){
     console.log("Not Enough Messages to Batch!");
@@ -372,4 +360,66 @@ async function clusterMake(req, takenLabels, EMBEDDED_BATCH_SIZE, now, EMEDDING_
   }
 
   console.log("Successfully reflected user batch max");
+}
+
+// grabs old processed unclustered embedded messages "old" and assigns them to clusters
+async function cleanup(req, LABEL_BATCH_SIZE, now){
+  console.log("Attempting Cleanup");
+
+  const timeCutOff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  const oldMessages = await db.collection("messages").find(
+    { ownerID: req.user.uid, processedForCluster: true, label: -1, time: { $gte: timeCutOff} }
+  ).limit(LABEL_BATCH_SIZE).toArray()
+
+  if(!oldMessages || oldMessages.length == 0){
+    console.log("Skipped Clean Up : no old messages")
+    return;
+  }
+
+  const userClusters = await db.collection("clusters").find(
+    { ownerID: req.user.uid }
+  ).toArray()
+
+  if(!userClusters || userClusters.length == 0){
+    console.log("Skipped Clean Up : no clusters")
+    return;
+  }
+
+  const cleanUpResponse = await fetch("http://ml:8000/cleanup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages: oldMessages, clusters: userClusters})
+  })
+  const cleanUpData = await cleanUpResponse.json()
+  
+  const cleanUpClusterBatchUpdate = cleanUpData.clusters.map((cluster) => ({
+    updateOne: {
+      filter: { ownerID: req.user.uid, label: Number(cluster.label) },
+      update: {
+        $set: {
+          centroid: cluster.centroid,
+          count: cluster.count,
+          weight: cluster.weight,
+        }
+      }
+    }
+  }));
+
+  await db.collection("clusters").bulkWrite(cleanUpClusterBatchUpdate);
+
+  const cleanUpLabelBatchUpdate = oldMessages.map((msg, i) => ({
+    updateOne: {
+      filter: { _id: msg._id },
+      update: {
+        $set: {
+          "label" : cleanUpData.labels[i]
+        }
+      }
+    }
+  }));
+
+  await db.collection("messages").bulkWrite(cleanUpLabelBatchUpdate);
+
+  console.log("Successfully Cleaned up");
 }
