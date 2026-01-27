@@ -13,12 +13,14 @@ Already completed:
 - centroid aggregation and fun cluster maintenance
 - aws lighthouse backend API hosting and https
 
-Currently working on:
+Currently working on (from most to least focused):
+- finding bugs
 - user to user matching via FAISS
+- making umap more accurate < --- would like more user chat messages (not from me) to train on for purely visual aspects
+- using a dataset of genres for reverse embedding cluster centroids (would replace default {Cluster 0, Cluster 1, ... , Cluster n} names and likely lead to improved FAISS implementation)
 - few other nuances
 
 Planning to work on:
-- making umap more accurate < --- needs more user messages to train on for visual
 - vectorized or hot c functions
 - theme change and custom background stickers
 - model for user interactions < --- needs more user interactions to train on
