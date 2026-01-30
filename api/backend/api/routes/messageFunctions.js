@@ -137,7 +137,7 @@ export async function embeddingBatch(req, MESSAGE_BATCH_SIZE, EMBEDDED_BATCH_SIZ
 
   console.log("Successfully updated impacted clusters in MongoDB");
   
-  updateImpacted(req, EMBEDDED_BATCH_SIZE)
+  updateImpacted(req, EMBEDDED_BATCH_SIZE, now)
 
   return { status: "complete", reason: "all updates successful" };
 }
@@ -396,12 +396,12 @@ async function cleanup(req, LABEL_BATCH_SIZE, now, EMBEDDED_BATCH_SIZE){
 
   await db.collection("messages").bulkWrite(cleanUpLabelBatchUpdate);
 
-  updateImpacted(req, EMBEDDED_BATCH_SIZE);
+  updateImpacted(req, EMBEDDED_BATCH_SIZE, now);
 
   console.log("Successfully Cleaned up");
 }
 
-async function updateImpacted(req, EMBEDDED_BATCH_SIZE){
+async function updateImpacted(req, EMBEDDED_BATCH_SIZE, now){
   console.log("Attempting to update impacted clusters");
   // checks if a cluster has enough impactes to be sucessfully reweighed
   const clustersNeedingUpdates = await db.collection("clusters").find(
