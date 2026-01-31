@@ -162,7 +162,7 @@ export function LogIn({ setCreate } : { setCreate : React.Dispatch<React.SetStat
       <div className="infos">
         <button className="signin-text" onClick={() => create(true)}>Create User</button>
         <button className="signin-text signin-button-side" onClick={signIn}>Sign In</button>
-        <button className="signin-text signin-google" onClick={signInWithGoogle}>Sign In w/ Google</button>
+        <button className="signin-text signin-google">Google Sign In Down</button>
       </div>
     </div>
   );
