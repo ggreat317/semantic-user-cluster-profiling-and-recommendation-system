@@ -1,4 +1,4 @@
-# semantic-conversation-profiling-system
+# semantic-conversation-profiling-and-recommendation-system
 
 # Description
 Simple. An online chat application with front end, back end, and ML properties. 
