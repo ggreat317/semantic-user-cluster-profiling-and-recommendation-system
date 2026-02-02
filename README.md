@@ -11,7 +11,7 @@ Little Less Simple. A user profiling and recommendation system based on batch in
 
 Even Less Simple. Email me and I can break down how everything works and why it works that way ( ggreat317@gmail.com ).
 
-Least Simple. Read through all code, research all buzzwords used in this read me, and research all libraries used, then email me ( listed above ).
+Least Simple. Read through all code, research all buzzwords used in this read me, and research all libraries used, then email me ( listed above :P ).
 
 # First Week of Feburary 2026 Updates
 
