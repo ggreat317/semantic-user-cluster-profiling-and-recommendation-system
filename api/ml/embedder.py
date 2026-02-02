@@ -10,6 +10,7 @@ from umap_model import load_umap_model
 from datetime import datetime, timezone
 import asyncio
 import faiss
+from tags import GENRES, ANCHORS, FLAGS
 
 # maxes current jobs at 1
 mlSemaphore = asyncio.Semaphore(1)
@@ -18,7 +19,7 @@ mlSemaphore = asyncio.Semaphore(1)
 DIMENSIONS = 384
 
 DECAY_RATE = 0.11
-CLUSTER_SIMILARITY_NEEDED = .75
+CLUSTER_SIMILARITY_NEEDED = .70
 
 reducer3 = None
 reducer5 = None
@@ -26,16 +27,19 @@ reducer5 = None
 UMAP3_PATH = "umap3_model.pkl"
 UMAP5_PATH = "umap5_model.pkl"
 
-LABELS = ["games", "career", "sports", "politics", "finance", "health", "mental", "random", "sports",
-          "politics", "hate", "love", "self", "compliments", "introductions", "anime", "shows", "movies",
-          "books", "cars", "religion", "music", "greetings", "advice", "socials", "random", "reccommend",
-          "ai", "complaints", "how", "versus", "speculation", "time", "random"
-          ]
+# IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT
 
+# THE GENRES, ANCHORS, AND FLAGS ARE ONLY FOR GENERIC CLUSTER NAME, 
+# CLUSTERS ARE NOT MADE THROUGH THESE NAIVE CHANNELS
+# NOR IS IT USED TO MATCH PEOPLE BASED ON, IT IS FAR TOO SHALLOW FOR A PERSONALITY FINGERPRINT
+# THESE GENERIC CLUSTER NAMES ARE USED FOR UI ABSTRACTION REPLACING THE COMPLEX PROFILES/EMBEDDING
+# THIS ALSO APPLIES TO LOW-DIMENSIONAL (UMAP) PROJECTIONS, THEY ARE INCREDIBLY SHALLOW
+# AGAIN APPLIES ONLY FOR GENRES, ANCHORS, AND FLAGS
+
+# ALL OTHER CLUSTER OR EMBEDDING FUNCTIONS REFLECT ACTUAL "PERSONALITY FINGERPRINT"
 
 
 # for server cold start health checks, works in tandem with /health
-
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     global reducer3, reducer5
@@ -43,25 +47,29 @@ async def lifespan(_app: FastAPI):
     reducer5 = load_umap_model(UMAP5_PATH)
     yield
 
-print("load up embedder env")
-
 app = FastAPI(lifespan=lifespan)
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
 class Cluster(BaseModel):
-    label: int
+    label: int | str
     centroid: List[float] | None = None
     count: int | None = None
     weight: float | None = None
     lastUpdated: datetime | None = None
+    genre: str | int | None = None
+    flag: str | int | None = None
+    sim: float | None = None
 
 class ClusterWithId(BaseModel):
     ownerID: str
-    label: int
+    label: int | str
     centroid: List[float]
     count: int
     weight: float
     lastUpdated: datetime
+    genre: str  | int | None = None
+    flag: str | int | None = None
+    sim: float | None = None
 
 class Message(BaseModel):
     label: int
@@ -84,6 +92,31 @@ class MessagesClusters(BaseModel):
 class ClustersClusters(BaseModel):
     user: List[Cluster]
     compare: List[ClusterWithId]
+
+GENRESEMBEDDED = model.encode(GENRES).tolist()
+GENRECLUSTERS : List[Cluster] = []
+for i, label in enumerate(GENRES):
+    GENRECLUSTERS.append(
+        Cluster(
+            label = label,
+            centroid = GENRESEMBEDDED[i]
+        )
+    )
+
+ANCHORSEMBEDDED = {
+    genre : model.encode(anchor)
+    for genre, anchor in ANCHORS.items()
+}
+
+FLAGSSEMBEDDED = model.encode(FLAGS).tolist()
+FLAGCLUSTERS : List[Cluster] = []
+for i, label in enumerate(FLAGS):
+    FLAGCLUSTERS.append(
+        Cluster(
+            label = label,
+            centroid = FLAGSSEMBEDDED[i]
+        )
+    )
 
 # angle similarity between two points
 def cosine_similarity(a, b):
@@ -117,7 +150,13 @@ def computeClusters(messages: List[Message]):
         else:
             cluster.centroid = np.zeros_like(cluster.centroid)
         
-        # default values
+        # tags clusters
+        tags = tagAssign(np.array([cluster.centroid]))
+        cluster.genre = tags["genres"][0]
+        cluster.sim = tags["sims"][0]
+        cluster.flag = tags["flags"][0]
+
+        # checks values
         cluster.centroid = cluster.centroid.tolist()
         cluster.lastUpdated = now
     
@@ -127,7 +166,7 @@ def computeClusters(messages: List[Message]):
 # REMEMBER
 # REMEMBER try to vectorize or make an effective C hot function later
 # REMEMBER
-def proximityAssign(embeddings: np.ndarray, clusters: List[Cluster] | None):
+def proximityAssign(embeddings: np.ndarray, clusters: List[Cluster] | None, simNeeded = CLUSTER_SIMILARITY_NEEDED):
 
     # returns unassigned if no clusters to assign to
     if not clusters:
@@ -150,9 +189,11 @@ def proximityAssign(embeddings: np.ndarray, clusters: List[Cluster] | None):
             if sim > bestSim:
                 bestSim = sim
                 label = cluster.label
+                print(label)
+                print(sim)
 
         # if similarity is less than the neccesary then it doesnt apply
-        if bestSim > CLUSTER_SIMILARITY_NEEDED:
+        if bestSim > simNeeded:
             # can use a defaultdict, if you want (same use case)
             impactedClusters[label] = impactedClusters.get(label,0) + 1
         else:
@@ -164,13 +205,76 @@ def proximityAssign(embeddings: np.ndarray, clusters: List[Cluster] | None):
         "impactedClusters" : impactedClusters
     }
 
+def tagAssign(embeddings: np.ndarray):
+    genres = []
+    flags =[]
+    sims = []
+    impacted = {}
+    for embed in embeddings:
+        genre = "Unassigned"
+        bestSim = -1.0
+
+        for cluster in GENRECLUSTERS:
+            sim = cosine_similarity(embed, cluster.centroid)
+            if sim > bestSim:
+                bestSim = sim
+                genre = cluster.label
+            if cluster.label in ANCHORS:
+                for anchor in ANCHORSEMBEDDED[cluster.label]:
+                    sim = cosine_similarity(embed, anchor)
+                    if sim > bestSim:
+                        bestSim = sim
+                        genre = cluster.label
+        impacted[genre] = impacted.get(genre,0) + 1
+        genres.append(genre)
+        sims.append(bestSim)
+
+        bestSim = -1.0
+        flag = "No Flag"
+        for cluster in FLAGCLUSTERS:
+            sim = cosine_similarity(embed, cluster.centroid)
+            if sim > bestSim:
+                bestSim = sim
+                flag = cluster.label
+        if bestSim < .7:
+            flag = "No Flag"
+            
+        flags.append(flag)
+    return {
+        "genres": genres,
+        "impacted" : impacted,
+        "sims" : sims,
+        "flags" : flags
+
+    }
+
+# used when mass update needed for genres/flags
+@app.post("/tag")
+async def tag(req: List[ClusterWithId]):
+    # grabs centroids and assignes genres and flags
+    centroids = np.array([c.centroid for c in req])
+    tags = tagAssign(centroids)
+    print("impacted genres")
+    print(tags["impacted"])
+    for i, cluster in enumerate(req):
+        cluster.genre = tags["genres"][i]
+        cluster.sim = tags["sims"][i]
+        cluster.flag = tags["flags"][i]
+    return{
+        "taggedClusters": req
+    }
+
+    
 @app.post("/embed")
 async def getEmbedding(req: TextsClusters):
+    print("Incoming JSON:", req)
     async with mlSemaphore:
         # embeds texts
         embeddings = model.encode(req.texts)
         X = np.array(embeddings, dtype=np.float32)
 
+        proximityAssign(X, GENRECLUSTERS)
+        proximityAssign(X, FLAGCLUSTERS)
         # pure visualization embedding
         umap3_coords = reducer3.transform(X)
 

@@ -5,11 +5,27 @@ import dynamic from "next/dynamic"
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false })
 import { useCss } from "../../homepage/useCss"
 
-export default function profileUMAP({ points, self }) {
+export default function profileUMAP({ profile, self }) {
+  const points = profile[0];
+  const genres = profile[1];
+  console.log("genres")
+  console.log(genres)
 
   if (!Array.isArray(points)){
     console.log("invalid points");
     return <div>No Message Data Available</div>
+  }
+
+  function getGenre(label) {
+    if (label == -1) return "Unassigned";
+
+    const genre = genres[label][0];
+    const sim = genres[label][1];
+
+    if (sim >= 0.6) return genre;
+    if (sim >= 0.4) return `Likely ${genre}`;
+    if (sim >= 0.2) return `Possibly ${genre}`;
+    return `Maybe ${genre}?`;
   }
 
   const colors = useCss(["--button", "--text", "--time"])
@@ -26,13 +42,13 @@ export default function profileUMAP({ points, self }) {
     z: pts.map(p => p.umap3[2]),
     mode: "markers",
     type: "scatter3d",
-    name: label === "-1" ? "Unassigned" : `Cluster ${label}`,
+    name: getGenre(label),
     marker: {
       size: label === "-1" ? 2 : 4,
       opacity: label === "-1" ? 0.3 : 0.85
     },
     //hoverinfo: "skip"
-    hovertemplate: self ? "%{text} <extra></extra>" : label === "-1" ? "Unassigned" : "Cluster %{text}" ,
+    hovertemplate: self ? "%{text} <extra></extra>" : label === "-1" ? "Unassigned" : "%{text}" ,
     text: self ? pts.map(p => wrapText(p.text)): pts.map(() => label) 
   }))
 
@@ -70,6 +86,13 @@ export default function profileUMAP({ points, self }) {
 function wrapText(text){
   const regex = new RegExp(`(.{1,20})`, 'g');
   return text.match(regex).join('<br>')
+}
+
+function annotateColor(genre, sim) {
+  if (sim >= 0.6) return genre;
+  if (sim >= 0.4) return `${genre}?`;
+  if (sim >= 0.2) return `Possibly ${genre}`;
+  return "Unclear";
 }
 
 

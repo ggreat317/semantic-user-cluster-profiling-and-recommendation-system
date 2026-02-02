@@ -1,16 +1,22 @@
 # semantic-conversation-user-profiling-and-recommendation-system
 
 # Description
-Simple. An online chat application with front end, back end, and ML properties. 
+Most Simple. An Overly Optimized Way to Find People to Talk To Online.
 
-Less Simple. Creates evolving user cluster profiles based on clustered message embeddings and promotes user interaction with similar cluster profiles.
+Pretty Simple. An online chat application with front end, back end, and ML properties that presents you people who talk about the same things.
 
-Least Simple. A user profiling and reccomendation system based on batch ingested embeddings, time-decayed clusters, aggregated cluster profiles, low-dimensionality projections, and cluster-cluster similarity, integrated though a fully deployed user messaging application, backed by authentication and utilizing three databases, in order to promote user interaction with people whose cluster profiles most resemble eachothers, e.g. they talk about the same stuff.
+Kind Of Simple. An application that creates evolving user cluster profiles based on clustered message embeddings and promotes user interaction with similar cluster profiles.
 
+Little Less Simple. A user profiling and reccomendation system based on batch ingested embeddings, time-decayed clusters, aggregated cluster profiles, low-dimensionality projections, "de-embbeded" centroids, and cluster-cluster similarity, integrated though a fully deployed user messaging application, backed by authentication and utilizes three databases, in order to promote user interaction with people whose cluster profiles most resemble eachothers, e.g. they talk about the same stuff.
 
-# Fourth Week of January 2026 Updates
+Even Less Simple. Email me and I can break down how everything works and why it works that way (ggreat317@gmail.com).
+
+Least Simple. Read through all code, research all buzzwords used in this read me, and research all libraries used.
+
+# First Week of Feburary 2026 Updates
 
 Already completed:
+- many bug fixes
 - most of react frontend hosted on firebase
 - pipelined embeddings, cluster creation, and low dimensionality proj.
 - data wiring/schemas in mongo, firebase firestore, and firebase RTDB
@@ -18,13 +24,13 @@ Already completed:
 - time-decayed centroid aggregation (like weighing the importance of clusters), cluster maintenance (since clusters evolve), and "ramp up" batch ingestion pipelines 
 - aws lighthouse provided server to host backend n API's and https via Route 53 and nginx for remote usage
 - cluster to cluster similarity via FAISS (basically regaular similarity loop, but they filter out the ones that have no chance) and cluster scoring aggregation
+- "reversing" embedding cluster centroids for genre names, sim scores, flagging clusters for better UI abstraction, this replaces the basic cluster names ({Cluster 0, Cluster 1, ...., Cluster n})
 - some other stuff I likely forgot
 
 Currently working on (prioritized and will likely be done by 2/14, I add things as I finish them):
 - finding foundational bugs
 - normalizing user cluster time-weights
 - getting more user messages in messageVault for better low-dimensional proj.
-- using a dataset of genres for reverse embedding cluster centroids (would replace default {Cluster 0, Cluster 1, ... , Cluster n} names and likely lead to improved FAISS implementation)
 
 Planning to work on (not prioritized but wanted done by 3/1):
 - mult-line messages/inputs and better UI

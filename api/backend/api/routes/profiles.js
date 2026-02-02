@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.get("/UMAP/self", async (req, res) => {
   // grabs UMAPed message meta data of the requester with text
-  const result = await db.collection("messages").aggregate([
+  const messagesRaw = await db.collection("messages").aggregate([
     { 
       $match: {
         ownerID: req.user.uid, 
@@ -23,6 +23,26 @@ router.get("/UMAP/self", async (req, res) => {
     },
   ]).limit(512).toArray()
 
+  const genresRaw = await db.collection("clusters").aggregate([
+    {
+      $match: {
+        ownerID: req.user.uid,
+      },
+    },
+    {
+      $project: {
+        label: 1,
+        genre: 1,
+        sim: 1,
+      }
+    }
+  ]).toArray();
+
+  const messages = messagesRaw.map( m => ({ text: m.text, label: m.label, umap3: m.umap3 }) );
+  const genres = Object.fromEntries(genresRaw.map( g => [ [g.label] , [ g.genre, g.sim ] ] ));
+
+  const result = [messages, genres];
+
   // sends the UMAPed meta data
   res.json(result);
 })
@@ -36,7 +56,7 @@ router.get("/UMAP/others/:userID", async (req, res) =>{
   }
 
   // grabs UMAPed message meta data of that user without text, for user privacy
-  const result = await db.collection("messages").aggregate([
+  const messagesRaw = await db.collection("messages").aggregate([
     { 
       $match: {
         ownerID: userID, 
@@ -51,8 +71,27 @@ router.get("/UMAP/others/:userID", async (req, res) =>{
         umap3: 1,
       }
     },
-  ]).limit(512).toArray()
+  ]).limit(512).toArray();
 
+  const genresRaw = await db.collection("clusters").aggregate([
+    {
+      $match: {
+        ownerID: userID,
+      },
+    },
+    {
+      $project: {
+        label: 1,
+        genre: 1,
+        sim: 1
+      }
+    }
+  ]).toArray();
+
+  const messages = messagesRaw.map( m => ({ text: m.text, label: m.label, umap3: m.umap3 }) );
+  const genres = Object.fromEntries(genresRaw.map( g => [ [g.label] , [ g.genre, g.sim ] ] ));
+
+  const result = [messages, genres];
   // sends the UMAPed meta data
   res.json(result);
 })

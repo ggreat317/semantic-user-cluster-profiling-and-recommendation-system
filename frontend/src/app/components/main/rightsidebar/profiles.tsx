@@ -73,7 +73,7 @@ export function Profiles({user, room} : {user : User, room : string}) {
 export function ProfileRow({ userID, userName, self, best }: {userID: string, userName: string, self: boolean, best: boolean}) {
 
   const [open, setOpen] = useState(false);
-  const [points, setPoints] = useState<number[][]>([])
+  const [profile, setProfile] = useState<[]>([])
   const [loading, setLoading] = useState(false);
 
   if(!userName){ return; }
@@ -85,8 +85,8 @@ export function ProfileRow({ userID, userName, self, best }: {userID: string, us
     try{
       console.log("im trying to load the umap");
       console.log(userID)
-      const coords = self ? await loadSelfUMAP() : await loadOtherUMAP(userID)
-      setPoints(coords);
+      const profile = self ? await loadSelfUMAP() : await loadOtherUMAP(userID)
+      setProfile(profile);
       console.log("pass")
     }catch{
       console.log("fail")
@@ -117,10 +117,10 @@ export function ProfileRow({ userID, userName, self, best }: {userID: string, us
 
       {open && (
         <div className="aboutme">
-            {!loading && points.length!=0 && <ProfileUMAP points={points} self={self}></ProfileUMAP>}
+            {!loading && profile.length != 0 && <ProfileUMAP profile={profile} self={self}></ProfileUMAP>}
           <div>
             {loading && <div>Loading...</div>}
-            {!loading && points.length==0 && <div>Not Enough Messsages for Profile Display</div>}
+            {!loading && profile.length === 0 && <div>Not Enough Messsages for Profile Display</div>}
             {!self && <FriendButton recipientID={userID} />}
           </div>
         </div>

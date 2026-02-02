@@ -64,6 +64,10 @@ router.post("/", async (req, res) => {
     // uploads message to firebase real time
     await message.FirebaseUploadMessage(req, messageID, now)
     
+    // not an OG horseman (only used for UI abstraction like the UMAP)
+    // THIS WILL OVERWRITE AND UPDATE ALL PREVIOUS TAGS (GENRES, FLAGS)
+    // await message.updateTags()
+
     // makes embeddings
     await message.embeddingBatch(req, MESSAGE_BATCH_SIZE, EMBEDDED_BATCH_SIZE, now, messagesSinceLastEmbedBatch)
     

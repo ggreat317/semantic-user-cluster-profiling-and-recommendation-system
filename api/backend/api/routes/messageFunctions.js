@@ -311,7 +311,10 @@ async function clusterMake(req, takenLabels, EMBEDDED_BATCH_SIZE, now, EMEDDING_
           weight: cluster.weight,
           lastUpdated: now,
           updatesPending: 0,
-          triggered: false
+          triggered: false,
+          genre: cluster.genre,
+          sim: cluster.sim,
+          flag: cluster.flag
         }
       }
     }));
@@ -443,7 +446,10 @@ async function updateImpacted(req, EMBEDDED_BATCH_SIZE, now){
           weight: cluster.weight,
           lastUpdated: now,
           updatesPending: 0,
-          triggered: true
+          triggered: true,
+          genre: cluster.genre,
+          sim: cluster.sim,
+          flag: cluster.flag,
         }
       }
     }
@@ -484,4 +490,56 @@ async function profileMatch(req){
   )
 
   console.log("Found the best match");
+}
+
+// only used in dev, when tag selection is changed and all clusters need to be updated
+export async function updateTags(){
+  // fetching all clusters and putting them through the genre updater
+  const allClusters = await db.collection("clusters").find().toArray();
+  const tagResponse = await fetch("http://ml:8000/tag", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify( allClusters ),
+  });
+  const tagData = await tagResponse.json()
+  const taggedClusters = tagData.taggedClusters
+
+  // run to see what cluster will look like after tag procedure
+  // should likely comment out the tag batch update commands below this
+  // await Promise.all(
+  //   taggedClusters.map(async (cluster) => {
+  //     console.log("------------------------------------")
+  //     const messages = await getMessages(cluster.ownerID, cluster.label)
+  //     console.log("label: " + cluster.label)
+  //     console.log("genre: " + cluster.genre)
+  //     console.log("score: " + cluster.sim)
+  //     console.log(messages)
+  //     console.log("------------------------------------")
+  //   })
+  // )
+
+  // THIS WILL OVERWRITE ALL PREVIOUS TAGS
+  const tagBatchUpdate = taggedClusters.map((cluster) => ({
+    updateOne: {
+      filter: { ownerID: cluster.ownerID, label: Number(cluster.label) },
+      update: {
+        $set: {
+          genre: cluster.genre,
+          sim: cluster.sim,
+          flag: cluster.flag
+        }
+      }
+    }
+  }));
+
+  await db.collection("clusters").bulkWrite(tagBatchUpdate);
+}
+
+async function getMessages(ownerID, label){
+  const result = await db.collection("messages").find(
+      {ownerID: ownerID, label : label},
+      {projection: {text: 1} }
+    ).toArray()
+  
+  return result.map(m => m.text)
 }
