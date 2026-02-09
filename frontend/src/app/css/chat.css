@@ -37,8 +37,8 @@
   padding: 5px 16px;
   display: flex;
   flex-direction: column;
-  overflow-y:auto;
   height: 85dvh;
+  overflow-x:hidden;
 }
 
 .main-chat-screen::-webkit-scrollbar {

@@ -66,6 +66,7 @@ router.post("/", async (req, res) => {
     
     // not an OG horseman (only used for UI abstraction like the UMAP)
     // THIS WILL OVERWRITE AND UPDATE ALL PREVIOUS TAGS (GENRES, FLAGS)
+    // you have to also uncomment in the function, like 2FA lol
     // await message.updateTags()
 
     // makes embeddings

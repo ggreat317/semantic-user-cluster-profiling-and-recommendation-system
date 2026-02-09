@@ -12,7 +12,7 @@ GENRES = ["Games", "Career", "Finance", "Health", "Philosophy", "Sports",
           "Hate", "Machine Learning", "Murmur", "Existentialism", "Vibes", "Drugs"
           ]
 
-ANCHORS = {
+GENRE_ANCHORS = {
     "AI" : ["discussing LLM models like chatgpt, claude, cursor", "talking about LLMS or LLM agents", "discussing AI or data companies like palantir"],
     "Advice" : ["giving recommendations or suggestions", "offering guidance on personal decisions", "answering questions with helpful tips"],
     "Anime" : ["Talking about anime characters fighting", "talking about manga or otaku culture", "power scaling anime characters", "who would win in a versus vs fight or battle", 
@@ -60,3 +60,27 @@ ANCHORS = {
 
 
 FLAGS = ["offensive", "hate", "harassment", "aggresive", "explicit"]
+
+# THESE PERSONALITY TRAITS ARE ALSO INTENTIONALLY NAIVE, BUT THEY WILL BE USED IN ADDITION TO THE CONTEXTUAL CLUSTERS
+# THIS IS BECAUSE THE COMMON PERSONALITY METRICS WE SEE ARE NOT AS EASILY CAUGHT AS THE CONTEXTUAL CLUSTERS
+# SO BY DEFINITION THEY MUST BE HUMANLY TRANSLATABLE, THUS NAIVE
+
+TRAITS = ["funny", "angry", "excited", "curious", "thoughtful", "hopeful", "nervous",
+          "sarcastic", "sad", "kind", "happy", "gooner"]
+
+TRAIT_ANCHORS = {
+    "funny": ["playful humor", "joking about another", "lighthearted humor", "offensive jokes about any topic", "joke followed by lol or lmfao"],
+    "angry": ["expressing frustration", "expressing irritation about a topic", "targeted aggressive behavior"],
+    "excited": ["expressing enthusiasm on a topic", "eagerness about an event", "showing hype or anticipation", "cheering or celebrating a positive outcome", "reacting energetically to news"],
+    "curious": ["asking questions about a topic", "exploring new ideas", "expressing wonder or interest", "investigating how something works", "inquiring about details or reasons"],
+    "thoughtful": ["reflecting on a situation", "considering different perspectives", "analyzing ideas deeply", "offering insightful commentary", "pondering consequences or meaning"],
+    "hopeful": ["expressing optimism", "looking forward positively", "encouraging outcomes", "believing in improvement", "wishing for a better future"],
+    "nervous": ["expressing anxiety", "showing uncertainty", "feeling tense or uneasy", "worrying about outcomes", "hesitant in actions or words"],
+    "sarcastic": ["making ironic statements", "mocking a situation or person", "teasing with exaggeration", "using humor to belittle", "saying the opposite of what is meant"],
+    "sad": ["expressing disappointment", "feeling downhearted", "showing melancholy", "lamenting an outcome", "reflecting on loss or sorrow"],
+    "kind": ["showing empathy", "offering support", "being caring to others", "helping without expectation", "expressing concern for well-being"],
+    "happy": ["expressing joy", "showing cheerfulness", "feeling content", "celebrating positive moments", "sharing happiness with others"],
+    "gooner": ["highly enthusiastic about Arsenal", "expressing sports fandom energy", "cheering for a favorite team", "celebrating a teams success", "reacting passionately to matches"]
+}
+
+# need to change gooner

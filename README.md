@@ -26,16 +26,14 @@ Already completed (not in chronological order):
 - time-decayed centroid aggregation (like weighing the importance of clusters), cluster maintenance (since clusters evolve), and "ramp up" batch ingestion pipelines 
 - aws lighthouse provided server to host backend n API's and https via Route 53 and nginx for remote usage
 - cluster to cluster similarity via FAISS (basically regaular similarity loop, but they filter out the ones that have no chance) and cluster scoring aggregation
-- "reversing" embedding cluster centroids for genre names, sim scores, flagging clusters for better UI abstraction, this replaces the basic cluster names ({Cluster 0, Cluster 1, ...., Cluster n})
+- "reversing" embedding cluster centroids for genre names, sim scores, flagging clusters for better UI abstraction, this replaces the basic cluster names ({Cluster 0, Cluster 1, ...., Cluster n}) (optimized this quite a bit lol)
 - some other stuff I likely forgot
 
 Currently working on (prioritized and will likely be done by 2/14. I remove things as I finish them or add things if multiple steps are needed):
-- finding foundational bugs
-- normalizing user cluster time-weights
-- getting more user messages in messageVault for better low-dimensional proj.
+- making cluster-cluster comparison less naive
+- changing umap to pca
 
 Planning to work on (not prioritized but wanted done by 3/1):
-- mult-line messages/inputs and better UI
 - vectorized or hot c functions (optimizes python scripts)
 - custom background stickers (allows for cool looking setups)
 - theme change (thinking of changing the entire theme, but i like the potential of a default environment, for customizing it to your liking)
@@ -44,7 +42,7 @@ Planning to work on (not prioritized but wanted done by 3/1):
 - adding cool stuff (the eternal strive to implement strengths)
 
 Hope To Work On:
-- model for user interactions < --- needs user interactions to train on
+- model for user-user interactions < --- needs user interactions for train
 
 # Remote Usage
 To use the latest push online:

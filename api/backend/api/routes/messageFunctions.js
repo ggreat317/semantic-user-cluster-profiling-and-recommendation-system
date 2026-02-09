@@ -506,33 +506,38 @@ export async function updateTags(){
 
   // run to see what cluster will look like after tag procedure
   // should likely comment out the tag batch update commands below this
-  // await Promise.all(
-  //   taggedClusters.map(async (cluster) => {
-  //     console.log("------------------------------------")
-  //     const messages = await getMessages(cluster.ownerID, cluster.label)
-  //     console.log("label: " + cluster.label)
-  //     console.log("genre: " + cluster.genre)
-  //     console.log("score: " + cluster.sim)
-  //     console.log(messages)
-  //     console.log("------------------------------------")
-  //   })
-  // )
+  await Promise.all(
+    taggedClusters.map(async (cluster) => {
+      console.log("------------------------------------")
+      const messages = await getMessages(cluster.ownerID, cluster.label)
+      console.log("label: " + cluster.label)
+      console.log("genre: " + cluster.genre)
+      console.log("score: " + cluster.sim)
+      // turn on the tests in tags
+      // console.log("test genre: " + cluster.testGenre)
+      // console.log("test score: " + cluster.testSim)
+      console.log(messages)
+      console.log("------------------------------------")
+    })
+  )
 
   // THIS WILL OVERWRITE ALL PREVIOUS TAGS
-  const tagBatchUpdate = taggedClusters.map((cluster) => ({
-    updateOne: {
-      filter: { ownerID: cluster.ownerID, label: Number(cluster.label) },
-      update: {
-        $set: {
-          genre: cluster.genre,
-          sim: cluster.sim,
-          flag: cluster.flag
-        }
-      }
-    }
-  }));
 
-  await db.collection("clusters").bulkWrite(tagBatchUpdate);
+  // const tagBatchUpdate = taggedClusters.map((cluster) => ({
+  //   updateOne: {
+  //     filter: { ownerID: cluster.ownerID, label: Number(cluster.label) },
+  //     update: {
+  //       $set: {
+  //         genre: cluster.genre,
+  //         sim: cluster.sim,
+  //         flag: cluster.flag
+  //       }
+  //     }
+  //   }
+  // }));
+
+  // await db.collection("clusters").bulkWrite(tagBatchUpdate);
+  // console.log("Successfully changed all tags");
 }
 
 async function getMessages(ownerID, label){

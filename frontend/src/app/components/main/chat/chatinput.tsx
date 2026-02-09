@@ -21,14 +21,28 @@ export function ChatInput({room} : {room : string}) {
     createMessage(newMessageAPI)
   }
 
+  const handleKeyStroke = (e: React.KeyboardEvent) => {
+    if (e.key == "Enter"){
+      e.preventDefault();
+      if (text.trim() === "") return;
+      handleMessageSubmit();
+      setText("");
+    }
+  }
+
   return (
     <form className="main-message fix" onSubmit={handleMessage}>
-      <input
+      <textarea
         className="input message-input"
         placeholder="Type Message..."
         onChange={(event) => setText(event.target.value)}
         value={text}
-      ></input>
+        onKeyDown={handleKeyStroke}
+        required
+        minLength={1}
+        maxLength={500}
+        rows={1}
+      />
       <button className="button message-send">Send</button>
     </form>
   )
