@@ -1,7 +1,7 @@
 # Semantic User Profiling and Recommendation System 
 
 # Try It Yourself: https://murmurs.web.app
-
+# TLDR: Bunch of vector math on embeddings and am currently working on a bunch of new cool features and don't have a need to push here, however there has been numerous updates to the live site as of March 11th
 # Description
 Most Simple. An Overly Optimized Way to Find People to Talk To Online.
 
